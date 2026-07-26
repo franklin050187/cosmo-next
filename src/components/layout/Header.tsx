@@ -38,16 +38,20 @@ export default function Header() {
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
-  // Read browser-only state (localStorage, URL fragment, URL params) once on mount.
+  // Read browser-only state (localStorage, URL params, session cookie) once on mount.
   // Must be in effect to avoid hydration mismatch: server always renders null/default.
   useEffect(() => {
-    // Token from URL fragment #token=... (never sent to servers)
-    const hash = window.location.hash;
-    const tokenMatch = hash.match(/[#&]token=([^&]*)/);
-    if (tokenMatch) {
-      const token = decodeURIComponent(tokenMatch[1]);
-      localStorage.setItem("token", token);
-      window.history.replaceState({}, "", window.location.pathname + window.location.search);
+    // Token from __session cookie (set by OAuth callback, never in URL)
+    const sessionCookie = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("__session="));
+    if (sessionCookie) {
+      const token = sessionCookie.split("=")[1];
+      if (token) {
+        localStorage.setItem("token", token);
+        // Clear the session cookie immediately
+        document.cookie = "__session=; path=/; max-age=0";
+      }
     }
 
     const stored = localStorage.getItem("token");

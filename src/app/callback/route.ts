@@ -93,8 +93,15 @@ export async function GET(req: NextRequest) {
 
     const token = generateUserToken(user);
 
-    // Clear OAuth cookies and redirect with token in fragment (not query — prevents server/referer leakage)
-    const res = NextResponse.redirect(`${clientUrl}${returnTo}#token=${token}`);
+    // Clear OAuth cookies and set session cookie (never in URL — prevents token leakage)
+    const res = NextResponse.redirect(`${clientUrl}${returnTo}`);
+    res.cookies.set("__session", token, {
+      path: "/",
+      httpOnly: false,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 60,
+    });
     res.cookies.set("oauth_csrf", "", { path: "/", maxAge: 0 });
     res.cookies.set("oauth_return", "", { path: "/", maxAge: 0 });
     return res;
