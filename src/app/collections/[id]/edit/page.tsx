@@ -1,0 +1,240 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import RequireAuth from "@/components/RequireAuth";
+import { type ShipRow } from "@/lib/types";
+import RichTextEditor from "@/components/ui/RichTextEditor";
+
+interface Collection {
+  id: number;
+  owner: string;
+  title: string;
+  description: string;
+  ships: ShipRow[];
+}
+
+function EditCollectionContent() {
+  const params = useParams();
+  const router = useRouter();
+  const [collection, setCollection] = useState<Collection | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/");
+      return;
+    }
+
+    fetch(`/api/collections/${params.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        let isOwner = false;
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          isOwner = payload.user?.username === data.owner;
+        } catch {}
+
+        if (!isOwner) {
+          router.push(`/collections/${params.id}`);
+          return;
+        }
+
+        setCollection(data);
+        setTitle(data.title);
+        setDescription(data.description ?? "");
+      })
+      .catch(() => router.push("/"))
+      .finally(() => setLoading(false));
+  }, [params.id, router]);
+
+  const handleSave = async () => {
+    if (!title.trim() || !collection) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/collections/${collection.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+      } else {
+        router.push(`/collections/${collection.id}`);
+      }
+    } catch {
+      setError("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <p className="text-center text-blue-200">Loading...</p>;
+  if (!collection) return null;
+
+  return (
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-4xl text-white text-center uppercase mb-8">
+        Edit Collection
+      </h1>
+
+      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4 space-y-4">
+        <div>
+          <label className="block text-blue-200 mb-1">Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full p-2 bg-[#021526] border border-gray-400 rounded text-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-blue-200 mb-1">Description</label>
+          <RichTextEditor
+            value={description}
+            onChange={setDescription}
+            rows={4}
+          />
+        </div>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving || !title.trim()}
+            className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+          <Link
+            href={`/collections/${collection.id}`}
+            className="px-4 py-2 border border-[#1C598C] rounded text-blue-200 hover:text-white transition-colors"
+          >
+            Cancel
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <AddShipsSection collectionId={collection.id} existingShipIds={collection.ships.map((s) => s.id)} />
+      </div>
+    </div>
+  );
+}
+
+function AddShipsSection({ collectionId, existingShipIds }: { collectionId: number; existingShipIds: number[] }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ShipRow[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState<number | null>(null);
+  const [added, setAdded] = useState<Set<number>>(new Set());
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/ship/search?q=${encodeURIComponent(query.trim())}&order=new`);
+      const data = await res.json();
+      setResults(data.data ?? []);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addShip = async (shipId: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setAdding(shipId);
+    try {
+      await fetch(`/api/collections/${collectionId}/ships`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ shipId }),
+      });
+      setAdded(new Set([...added, shipId]));
+    } catch {
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  return (
+    <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+      <h2 className="text-blue-200 text-sm mb-2">Add ships by name:</h2>
+      <div className="flex gap-2 mb-3">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && search()}
+          placeholder="Search ship name..."
+          className="flex-1 p-2 bg-[#021526] border border-gray-400 rounded text-white text-sm"
+        />
+        <button
+          onClick={search}
+          disabled={searching}
+          className="px-3 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors text-sm disabled:opacity-50"
+        >
+          {searching ? "..." : "Search"}
+        </button>
+      </div>
+
+      {results.length > 0 && (
+        <div className="space-y-1 max-h-60 overflow-y-auto">
+          {results.map((ship) => {
+            const alreadyIn = existingShipIds.includes(ship.id) || added.has(ship.id);
+            return (
+              <div
+                key={ship.id}
+                className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1C598C]/20"
+              >
+                <span className="text-white text-sm truncate">
+                  {ship.ship_name?.replace(".ship.png", "") ?? `Ship ${ship.id}`}
+                </span>
+                <button
+                  onClick={() => addShip(ship.id)}
+                  disabled={alreadyIn || adding === ship.id}
+                  className="text-xs px-2 py-1 rounded border border-[#1C598C] text-cyan-400 hover:bg-cyan-400/20 transition-colors disabled:opacity-40"
+                >
+                  {alreadyIn ? "✓ Added" : adding === ship.id ? "..." : "+ Add"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function EditCollectionPage() {
+  return (
+    <RequireAuth>
+      <EditCollectionContent />
+    </RequireAuth>
+  );
+}

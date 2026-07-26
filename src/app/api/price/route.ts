@@ -1,0 +1,18 @@
+import { NextRequest, NextResponse } from "next/server";
+import { calculateShipPrice } from "@/lib/price";
+import { verifyRequest } from "@/lib/auth";
+
+export async function POST(req: NextRequest) {
+  const payload = verifyRequest(req);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const result = calculateShipPrice(body);
+    return NextResponse.json(result);
+  } catch {
+    return NextResponse.json({ error: "Invalid ship data" }, { status: 400 });
+  }
+}
