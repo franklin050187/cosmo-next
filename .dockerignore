@@ -1,0 +1,12 @@
+node_modules
+.next
+.env
+.env*.local
+.git
+.gitignore
+.vercel
+*.md
+Dockerfile
+docker-compose*.yml
+.dockerignore
+npm-debug.log*
