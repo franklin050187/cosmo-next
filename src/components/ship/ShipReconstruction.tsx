@@ -93,53 +93,11 @@ function loadSprite(partId: string): Promise<HTMLImageElement> {
   });
 }
 
-function findCropBounds(
-  imageData: ImageData
-): { x: number; y: number; w: number; h: number } {
-  const { data, width, height } = imageData;
-  let minX = width;
-  let maxX = 0;
-  let minY = height;
-  let maxY = 0;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      if (data[idx] > 0 || data[idx + 1] > 0 || data[idx + 2] > 0) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  if (maxX < minX || maxY < minY) {
-    return { x: 0, y: 0, w: width, h: height };
-  }
-
-  const margin = 10;
-  minX = Math.max(0, minX - margin);
-  minY = Math.max(0, minY - margin);
-  maxX = Math.min(width - 1, maxX + margin);
-  maxY = Math.min(height - 1, maxY + margin);
-
-  let cropW = maxX - minX + 1;
-  let cropH = maxY - minY + 1;
-
-  if (cropW > cropH) {
-    const diff = cropW - cropH;
-    minY = Math.max(0, minY - Math.floor(diff / 2));
-    maxY = Math.min(height - 1, maxY + Math.ceil(diff / 2));
-    cropH = maxY - minY + 1;
-  } else if (cropH > cropW) {
-    const diff = cropH - cropW;
-    minX = Math.max(0, minX - Math.floor(diff / 2));
-    maxX = Math.min(width - 1, maxX + Math.ceil(diff / 2));
-    cropW = maxX - minX + 1;
-  }
-
-  return { x: minX, y: minY, w: cropW, h: cropH };
+function getRotatedSize(partId: string, rotation: number): [number, number] {
+  const p = partPhysics[partId];
+  if (!p) return [1, 1];
+  if (rotation === 1 || rotation === 3) return [p.size[1], p.size[0]];
+  return [p.size[0], p.size[1]];
 }
 
 export default function ShipReconstruction({ stats, parts }: Props) {
@@ -158,30 +116,44 @@ export default function ShipReconstruction({ stats, parts }: Props) {
       let maxY = -Infinity;
 
       for (const part of parts) {
+        const p = partPhysics[part.ID];
+        const w = p ? p.size[0] : 1;
+        const h = p ? p.size[1] : 1;
         const x = part.Location[0];
         const y = part.Location[1];
         if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
+        if (x + w > maxX) maxX = x + w;
         if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+        if (h + y > maxY) maxY = y + h;
       }
 
-      const SIZE_FACTOR = 16;
-      const canvaSize =
-        Math.max(
-          Math.abs(maxX) + Math.abs(minX),
-          Math.abs(maxY) + Math.abs(minY)
-        ) + 250;
-      const canvaOffset = canvaSize >> 1;
-      const pxSize = canvaSize * SIZE_FACTOR;
+      const PADDING = 8;
+      minX -= PADDING;
+      minY -= PADDING;
+      maxX += PADDING;
+      maxY += PADDING;
 
-      const offscreen = document.createElement("canvas");
-      offscreen.width = pxSize;
-      offscreen.height = pxSize;
-      const ctx = offscreen.getContext("2d")!;
+      const rangeX = maxX - minX;
+      const rangeY = maxY - minY;
+      const side = Math.max(rangeX, rangeY);
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+
+      const SIZE = 512;
+      canvas.width = SIZE;
+      canvas.height = SIZE;
+      const ctx = canvas.getContext("2d")!;
 
       ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, pxSize, pxSize);
+      ctx.fillRect(0, 0, SIZE, SIZE);
+
+      const SPRITE_REF_PX = 16;
+      const scale = SIZE / side;
+      const offsetX = SIZE / 2 - centerX * scale;
+      const offsetY = SIZE / 2 - centerY * scale;
+
+      const toX = (cellX: number) => cellX * scale + offsetX;
+      const toY = (cellY: number) => cellY * scale + offsetY;
 
       const orderedParts = [...parts];
       const reorder = ["cannon_deck", "ion_beam_prism", "resonance_beam_turret"];
@@ -205,28 +177,36 @@ export default function ShipReconstruction({ stats, parts }: Props) {
         const p = partPhysics[part.ID];
         if (!p) continue;
 
-        let xCoord = part.Location[0] + canvaOffset;
-        let yCoord = part.Location[1] + canvaOffset;
+        let xCoord = part.Location[0];
+        let yCoord = part.Location[1];
 
         [xCoord, yCoord] = spritePosition(part, [xCoord, yCoord]);
 
-        const scaledX = Math.round(xCoord * SIZE_FACTOR);
-        const scaledY = Math.round(yCoord * SIZE_FACTOR);
+        const sx = toX(xCoord);
+        const sy = toY(yCoord);
 
-        const spriteW = Math.round(sprite.naturalWidth / 4);
-        const spriteH = Math.round(sprite.naturalHeight / 4);
-
-        ctx.save();
-        ctx.translate(scaledX + spriteW / 2, scaledY + spriteH / 2);
+        const spriteW = (sprite.naturalWidth / 4) / SPRITE_REF_PX * scale;
+        const spriteH = (sprite.naturalHeight / 4) / SPRITE_REF_PX * scale;
 
         const rotation = part.Rotation ?? 0;
+        const hasSpriteSize = !!p.spriteSize;
+
+        ctx.save();
+
+        if (hasSpriteSize) {
+          ctx.translate(sx + spriteW / 2, sy + spriteH / 2);
+        } else {
+          const [rw, rh] = getRotatedSize(part.ID, rotation);
+          ctx.translate(toX(xCoord + rw / 2), toY(yCoord + rh / 2));
+        }
+
         ctx.rotate((rotation * Math.PI) / 2);
 
         if (part.FlipX) {
           ctx.scale(-1, 1);
         }
 
-        if (rotation === 1 || rotation === 3) {
+        if (hasSpriteSize && (rotation === 1 || rotation === 3)) {
           ctx.drawImage(sprite, -spriteH / 2, -spriteW / 2, spriteH, spriteW);
         } else {
           ctx.drawImage(sprite, -spriteW / 2, -spriteH / 2, spriteW, spriteH);
@@ -235,11 +215,8 @@ export default function ShipReconstruction({ stats, parts }: Props) {
         ctx.restore();
       }
 
-      ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-      ctx.fillRect(0, 0, pxSize, pxSize);
-
-      const comX = Math.round((stats.centerX + canvaOffset) * SIZE_FACTOR);
-      const comY = Math.round((stats.centerY + canvaOffset) * SIZE_FACTOR);
+      const comX = toX(stats.centerX);
+      const comY = toY(stats.centerY);
 
       const tractorParts = parts.filter(
         (p) => p.ID === "cosmoteer.tractor_beam_emitter"
@@ -247,151 +224,83 @@ export default function ShipReconstruction({ stats, parts }: Props) {
       if (tractorParts.length > 0) {
         const { centerOfMass } = await import("@/lib/physics");
         const tbCom = centerOfMass(tractorParts);
-        const tbX = Math.round((tbCom.x + canvaOffset) * SIZE_FACTOR);
-        const tbY = Math.round((tbCom.y + canvaOffset) * SIZE_FACTOR);
+        const tbX = toX(tbCom.x);
+        const tbY = toY(tbCom.y);
         ctx.fillStyle = "#ff0000";
         ctx.beginPath();
-        ctx.arc(tbX, tbY, 12, 0, Math.PI * 2);
+        ctx.arc(tbX, tbY, 6, 0, Math.PI * 2);
         ctx.fill();
       }
 
       ctx.fillStyle = "#00ff00";
       ctx.beginPath();
-      ctx.arc(comX, comY, 16, 0, Math.PI * 2);
+      ctx.arc(comX, comY, 8, 0, Math.PI * 2);
       ctx.fill();
 
-      const totalThrust = stats.thrustDirection.reduce((a, b) => a + b, 0) || 1;
-      const arrowSize = 35 * SIZE_FACTOR;
+      const arrowLen = 35;
+      const drawArrow = (
+        ox: number,
+        oy: number,
+        dx: number,
+        dy: number,
+        color: string
+      ) => {
+        const startX = toX(ox);
+        const startY = toY(oy);
+        const endX = toX(ox + dx * arrowLen);
+        const endY = toY(oy + dy * arrowLen);
 
-      for (let i = 0; i < 8; i++) {
-        if (i !== 7) continue;
-
-        const origin = stats.originThrust[i];
-        if (!origin) continue;
-        const thrust = stats.thrustDirection[i];
-        if (thrust === 0) continue;
-
-        const startX = Math.round((origin.x + canvaOffset) * SIZE_FACTOR);
-        const startY = Math.round((origin.y + canvaOffset) * SIZE_FACTOR);
-
-        const dirVec = {
-          x: (stats.thrustVector[i].x - origin.x) / totalThrust,
-          y: (stats.thrustVector[i].y - origin.y) / totalThrust,
-        };
-
-        const endXAbs = Math.round(
-          (dirVec.x * arrowSize / SIZE_FACTOR + origin.x + canvaOffset) * SIZE_FACTOR
-        );
-        const endYAbs = Math.round(
-          (dirVec.y * arrowSize / SIZE_FACTOR + origin.y + canvaOffset) * SIZE_FACTOR
-        );
-
-        ctx.strokeStyle = "#00c800";
+        ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(startX, startY);
-        ctx.lineTo(endXAbs, endYAbs);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
 
-        const angle = Math.atan2(endYAbs - startY, endXAbs - startX);
+        const angle = Math.atan2(endY - startY, endX - startX);
         const headLen = 8;
         ctx.beginPath();
-        ctx.moveTo(endXAbs, endYAbs);
+        ctx.moveTo(endX, endY);
         ctx.lineTo(
-          endXAbs - headLen * Math.cos(angle - Math.PI / 6),
-          endYAbs - headLen * Math.sin(angle - Math.PI / 6)
+          endX - headLen * Math.cos(angle - Math.PI / 6),
+          endY - headLen * Math.sin(angle - Math.PI / 6)
         );
-        ctx.moveTo(endXAbs, endYAbs);
+        ctx.moveTo(endX, endY);
         ctx.lineTo(
-          endXAbs - headLen * Math.cos(angle + Math.PI / 6),
-          endYAbs - headLen * Math.sin(angle + Math.PI / 6)
+          endX - headLen * Math.cos(angle + Math.PI / 6),
+          endY - headLen * Math.sin(angle + Math.PI / 6)
         );
         ctx.stroke();
 
-        ctx.fillStyle = "#00c800";
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(startX, startY, 3, 0, Math.PI * 2);
         ctx.fill();
+      };
+
+      const totalThrust = stats.thrustDirection.reduce((a, b) => a + b, 0) || 1;
+
+      for (let i = 0; i < 8; i++) {
+        if (i !== 7) continue;
+        const origin = stats.originThrust[i];
+        if (!origin) continue;
+        if (stats.thrustDirection[i] === 0) continue;
+
+        const dx = (stats.thrustVector[i].x - origin.x) / totalThrust;
+        const dy = (stats.thrustVector[i].y - origin.y) / totalThrust;
+        drawArrow(origin.x, origin.y, dx, dy, "#00c800");
       }
 
       for (let i = 0; i < 8; i++) {
         if (i === 7) continue;
-
         const origin = stats.originThrust[i];
         if (!origin) continue;
-        const thrust = stats.thrustDirection[i];
-        if (thrust === 0) continue;
+        if (stats.thrustDirection[i] === 0) continue;
 
-        const startX = Math.round((origin.x + canvaOffset) * SIZE_FACTOR);
-        const startY = Math.round((origin.y + canvaOffset) * SIZE_FACTOR);
-
-        const dirVec = {
-          x: (stats.thrustVector[i].x - origin.x) / totalThrust,
-          y: (stats.thrustVector[i].y - origin.y) / totalThrust,
-        };
-
-        const endXAbs = Math.round(
-          (dirVec.x * arrowSize / SIZE_FACTOR + origin.x + canvaOffset) * SIZE_FACTOR
-        );
-        const endYAbs = Math.round(
-          (dirVec.y * arrowSize / SIZE_FACTOR + origin.y + canvaOffset) * SIZE_FACTOR
-        );
-
-        ctx.strokeStyle = "#ffff00";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endXAbs, endYAbs);
-        ctx.stroke();
-
-        const angle = Math.atan2(endYAbs - startY, endXAbs - startX);
-        const headLen = 8;
-        ctx.beginPath();
-        ctx.moveTo(endXAbs, endYAbs);
-        ctx.lineTo(
-          endXAbs - headLen * Math.cos(angle - Math.PI / 6),
-          endYAbs - headLen * Math.sin(angle - Math.PI / 6)
-        );
-        ctx.moveTo(endXAbs, endYAbs);
-        ctx.lineTo(
-          endXAbs - headLen * Math.cos(angle + Math.PI / 6),
-          endYAbs - headLen * Math.sin(angle + Math.PI / 6)
-        );
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffff00";
-        ctx.beginPath();
-        ctx.arc(startX, startY, 3, 0, Math.PI * 2);
-        ctx.fill();
+        const dx = (stats.thrustVector[i].x - origin.x) / totalThrust;
+        const dy = (stats.thrustVector[i].y - origin.y) / totalThrust;
+        drawArrow(origin.x, origin.y, dx, dy, "#ffff00");
       }
-
-      const fullImageData = ctx.getImageData(0, 0, pxSize, pxSize);
-      const crop = findCropBounds(fullImageData);
-
-      const SIZE = 512;
-      canvas.width = SIZE;
-      canvas.height = SIZE;
-      const displayCtx = canvas.getContext("2d")!;
-      displayCtx.fillStyle = "#000000";
-      displayCtx.fillRect(0, 0, SIZE, SIZE);
-
-      const scale = Math.min(SIZE / crop.w, SIZE / crop.h);
-      const drawW = crop.w * scale;
-      const drawH = crop.h * scale;
-      const drawX = (SIZE - drawW) / 2;
-      const drawY = (SIZE - drawH) / 2;
-
-      displayCtx.drawImage(
-        offscreen,
-        crop.x,
-        crop.y,
-        crop.w,
-        crop.h,
-        drawX,
-        drawY,
-        drawW,
-        drawH
-      );
     }
 
     render();

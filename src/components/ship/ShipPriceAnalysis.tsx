@@ -17,13 +17,13 @@ function drawRadarChart(
   categories: Record<string, { price: number; percent: number }>,
   total: number
 ) {
-  const SIZE = 512;
+  const SIZE = 420;
   canvas.width = SIZE;
   canvas.height = SIZE;
   const ctx = canvas.getContext("2d")!;
   const cx = SIZE / 2;
   const cy = SIZE / 2;
-  const radius = SIZE / 2 - 80;
+  const radius = SIZE / 2 - 70;
 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -106,15 +106,14 @@ export default function ShipPriceAnalysis({ decoded }: Props) {
   }, [analysis]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-center">
+    <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex-shrink-0 md:w-[420px] flex items-start justify-center">
         <canvas
           ref={canvasRef}
-          className="max-w-full h-auto border border-[#1C598C] rounded"
+          className="w-full h-auto border border-[#1C598C] rounded"
         />
       </div>
-
-      <div>
+      <div className="flex-1 min-w-0">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-blue-200 border-b border-[#1C598C]">
