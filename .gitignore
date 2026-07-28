@@ -23,6 +23,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+broken-links.log
 
 # local env files
 .env*.local

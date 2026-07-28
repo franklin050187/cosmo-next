@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { type ShipRow } from "@/lib/types";
+import CollectionPicker from "@/components/collection/CollectionPicker";
+import { downloadShip } from "@/lib/download-ship";
 
 const DISPLAY_TAGS = [
   "cannon", "deck_cannon", "emp_missiles", "flak_battery",
@@ -21,15 +24,33 @@ function formatPrice(price: number): string {
 
 export default function ShipCard({ ship, priority = false }: { ship: ShipRow; priority?: boolean }) {
   const tags = (ship.tags ?? []).filter((t) => DISPLAY_TAGS.includes(t)).slice(0, 4);
+  const [downloading, setDownloading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem("token"));
+  }, []);
 
   const saveBackUrl = () => {
     sessionStorage.setItem("shipBackUrl", window.location.pathname + window.location.search);
   };
 
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      await downloadShip(ship.id, ship.ship_name);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <li className="group relative border border-[#1C598C]/50 rounded-xl bg-[#021526]/80 backdrop-blur overflow-hidden shadow-[0_0_12px_rgba(0,126,255,0.15)] hover:shadow-[0_0_20px_rgba(0,126,255,0.25)] hover:border-cyan-400/30 transition-all duration-200">
+    <li className="group relative border border-[#1C598C]/50 rounded-xl bg-[#021526]/80 backdrop-blur shadow-[0_0_12px_rgba(0,126,255,0.15)] hover:shadow-[0_0_20px_rgba(0,126,255,0.25)] hover:border-cyan-400/30 transition-all duration-200">
       {/* Image */}
-      <Link href={`/ship/${ship.id}`} className="block relative" aria-label={ship.ship_name} onClick={saveBackUrl}>
+      <Link href={`/ship/${ship.id}`} className="block relative overflow-hidden rounded-t-xl" aria-label={ship.ship_name} onClick={saveBackUrl}>
         <img
           src={ship.data}
           alt={ship.ship_name}
@@ -50,7 +71,8 @@ export default function ShipCard({ ship, priority = false }: { ship: ShipRow; pr
           </span>
           <span className="flex items-center gap-1 text-white/70 text-xs">
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
             {ship.downloads}
           </span>
@@ -63,6 +85,32 @@ export default function ShipCard({ ship, priority = false }: { ship: ShipRow; pr
           </span>
         </div>
       </Link>
+
+      {/* Action buttons — outside the Link so clicks don't navigate */}
+      {isLoggedIn && (
+        <div className="absolute top-0 right-0 mt-9 mr-1 flex flex-col gap-0.5">
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="p-1 rounded bg-[#021526]/80 border border-[#1C598C]/30 text-white/60 hover:text-cyan-300 hover:border-cyan-400/40 transition-colors disabled:opacity-40"
+            title="Download ship"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+          <CollectionPicker shipId={ship.id}>
+            <button
+              className="p-1 rounded bg-[#021526]/80 border border-[#1C598C]/30 text-white/60 hover:text-cyan-300 hover:border-cyan-400/40 transition-colors"
+              title="Add to collection"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </CollectionPicker>
+        </div>
+      )}
 
       {/* Info */}
       <div className="px-3 py-2.5 border-t border-[#1C598C]/30">

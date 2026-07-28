@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImageData, deleteShip } from "@/lib/db";
 import { verifyRequest } from "@/lib/auth";
+import { UTApi } from "uploadthing/server";
 
 export async function GET(
   req: NextRequest,
@@ -87,5 +88,18 @@ export async function DELETE(
     return NextResponse.json(result, { status: 403 });
   }
 
-  return NextResponse.json(result);
+  if (result.data) {
+    try {
+      const url = new URL(result.data);
+      const fileKey = url.pathname.split("/").pop();
+      if (fileKey) {
+        const utapi = new UTApi();
+        await utapi.deleteFiles(fileKey);
+      }
+    } catch {
+      // best-effort — file may already be gone
+    }
+  }
+
+  return NextResponse.json({ success: result.success });
 }

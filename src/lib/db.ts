@@ -71,10 +71,15 @@ export async function updateDownloads(shipId: number) {
 }
 
 export async function deleteShip(shipId: number, user: string) {
-  const row = await fetchOne("SELECT submitted_by FROM shipdb WHERE id = $1", [shipId]);
+  const row = await fetchOne("SELECT submitted_by, data FROM shipdb WHERE id = $1", [shipId]);
   if (!row || user !== row.submitted_by) return { error: "not the owner" };
+
+  await query("UPDATE collections SET ships = array_remove(ships, $1) WHERE $1 = ANY(ships)", [shipId]);
+  await query("UPDATE favoritedb SET favorite = array_remove(favorite, $1) WHERE $1 = ANY(favorite)", [shipId]);
+  await query("DELETE FROM favoritedb WHERE array_length(favorite, 1) IS NULL", []);
+
   await query("DELETE FROM shipdb WHERE id = $1", [shipId]);
-  return { success: `ship ${shipId} deleted` };
+  return { success: `ship ${shipId} deleted`, data: row.data };
 }
 
 export async function insertShip({
@@ -88,6 +93,7 @@ export async function insertShip({
   brand,
   crew,
   tags,
+  signature,
 }: {
   name: string;
   data: string;
@@ -99,13 +105,21 @@ export async function insertShip({
   brand: string;
   crew: number;
   tags: string[];
+  signature?: string;
 }) {
   const { rows } = await query(
     `INSERT INTO shipdb (name, data, submitted_by, description, ship_name, author, price, brand, crew, tags)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::text[]) RETURNING id`,
     [name, data, submittedBy, description, shipName, author, price, brand, crew, tags],
   );
-  return { success: `${rows[0]?.id}` };
+  const shipId = rows[0]?.id;
+  if (shipId && signature) {
+    await query(
+      "INSERT INTO ship_signatures (ship_id, signature) VALUES ($1, $2)",
+      [shipId, signature],
+    );
+  }
+  return { success: `${shipId}` };
 }
 
 export async function updateShip({
@@ -330,6 +344,7 @@ export async function getSearchPlus(filters: SearchFilters) {
   if (filters.author) conditions.push(`author ILIKE ${addCond(`%${filters.author}%`)}`);
   if (filters["max-crew"]) conditions.push(`crew <= ${addCond(filters["max-crew"])}`);
   if (filters.brand === "exl") conditions.push(`brand = ${addCond("exl")}`);
+  if (filters.brand === "gen") conditions.push(`brand = ${addCond("gen")}`);
 
   if (filters.desc) {
     const p1 = addCond(`%${filters.desc}%`);
@@ -404,5 +419,18 @@ export async function getAuthorsWithCounts() {
 export async function getTagsWithCounts() {
   return fetchAll(
     "SELECT tag, COUNT(*)::int AS count FROM (SELECT unnest(tags) AS tag FROM shipdb) sub GROUP BY tag ORDER BY count DESC, tag"
+  );
+}
+
+// ── Signatures ────────────────────────────────────────────────────
+
+export async function findDuplicateBySignature(signature: string) {
+  return fetchAll(
+    `SELECT ss.ship_id AS id, s.ship_name, s.author
+     FROM ship_signatures ss
+     JOIN shipdb s ON s.id = ss.ship_id
+     WHERE ss.signature = $1
+     LIMIT 5`,
+    [signature],
   );
 }

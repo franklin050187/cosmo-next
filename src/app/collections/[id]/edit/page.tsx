@@ -204,21 +204,35 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
       </div>
 
       {results.length > 0 && (
-        <div className="space-y-1 max-h-60 overflow-y-auto">
+        <div className="space-y-1 max-h-80 overflow-y-auto">
           {results.map((ship) => {
             const alreadyIn = existingShipIds.includes(ship.id) || added.has(ship.id);
+            const name = ship.ship_name?.replace(".ship.png", "") ?? `Ship ${ship.id}`;
             return (
               <div
                 key={ship.id}
-                className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1C598C]/20"
+                className="group flex items-center gap-2 py-1.5 px-2 rounded hover:bg-[#1C598C]/20 min-w-0"
               >
-                <span className="text-white text-sm truncate">
-                  {ship.ship_name?.replace(".ship.png", "") ?? `Ship ${ship.id}`}
-                </span>
+                <div className="relative shrink-0">
+                  <img
+                    src={ship.data}
+                    alt=""
+                    className="w-10 h-10 rounded object-contain bg-[#021526] border border-[#1C598C]/30"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm truncate leading-tight">
+                    {name}
+                  </p>
+                  <p className="text-blue-200/60 text-xs truncate leading-tight">
+                    by {ship.author}
+                  </p>
+                </div>
                 <button
                   onClick={() => addShip(ship.id)}
                   disabled={alreadyIn || adding === ship.id}
-                  className="text-xs px-2 py-1 rounded border border-[#1C598C] text-cyan-400 hover:bg-cyan-400/20 transition-colors disabled:opacity-40"
+                  className="shrink-0 text-xs px-2.5 py-1.5 rounded border border-[#1C598C] text-cyan-400 hover:bg-cyan-400/20 transition-colors disabled:opacity-40 min-h-[32px]"
                 >
                   {alreadyIn ? "✓ Added" : adding === ship.id ? "..." : "+ Add"}
                 </button>

@@ -26,7 +26,7 @@ function MyCollectionsContent() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
-      .then((data) => setCollections(data))
+      .then((data) => setCollections(Array.isArray(data) ? data : []))
       .catch(() => setCollections([]))
       .finally(() => setLoading(false));
   }, []);

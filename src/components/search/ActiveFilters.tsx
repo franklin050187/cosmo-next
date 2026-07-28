@@ -42,6 +42,12 @@ export default function ActiveFilters({ filters, setFilter, setFilters, clearFil
   if (filters.maxCrew) {
     chips.push({ label: `Crew ≤ ${filters.maxCrew}`, onRemove: () => setFilter("max-crew", "") });
   }
+  if (filters.brand === "exl") {
+    chips.push({ label: "Excelsior", onRemove: () => setFilter("brand", "") });
+  }
+  if (filters.brand === "gen") {
+    chips.push({ label: "Casual", onRemove: () => setFilter("brand", "") });
+  }
 
   if (chips.length === 0) return null;
 

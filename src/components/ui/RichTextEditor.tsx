@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 interface Props {
   value: string;
@@ -11,6 +11,12 @@ interface Props {
 
 export default function RichTextEditor({ value, onChange, placeholder, rows = 4 }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
 
   const exec = useCallback((cmd: string, arg?: string) => {
     document.execCommand(cmd, false, arg);
@@ -27,7 +33,7 @@ export default function RichTextEditor({ value, onChange, placeholder, rows = 4 
   }, [exec]);
 
   return (
-    <div className="border border-gray-400 rounded overflow-hidden">
+    <div dir="ltr" className="border border-gray-400 rounded overflow-hidden">
       <div className="flex gap-0.5 px-1 py-1 bg-[#0a1e33] border-b border-gray-400">
         <ToolBtn onClick={() => exec("bold")} title="Bold">
           <strong>B</strong>
@@ -60,9 +66,9 @@ export default function RichTextEditor({ value, onChange, placeholder, rows = 4 
         suppressContentEditableWarning
         onInput={handleInput}
         data-placeholder={placeholder}
+        dir="ltr"
         className="w-full bg-[#021526] text-white p-2 focus:outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-500 [&_a]:text-cyan-400 [&_a]:underline [&_li]:ml-4 [&_ul]:list-disc"
-        style={{ minHeight: `${rows * 1.5}rem` }}
-        dangerouslySetInnerHTML={{ __html: value }}
+        style={{ direction: "ltr", unicodeBidi: "embed", minHeight: `${rows * 1.5}rem` }}
       />
     </div>
   );

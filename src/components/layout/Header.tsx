@@ -11,7 +11,11 @@ interface User {
 
 const NAV_LINKS = [
   { href: "/", label: "Ships" },
+  { href: "/collections", label: "Collections" },
   { href: "/upload", label: "Upload" },
+];
+
+const USER_MENU_LINKS = [
   { href: "/my-ships", label: "My Ships" },
   { href: "/favorites", label: "My Favorites" },
   { href: "/my-collections", label: "My Collections" },
@@ -29,19 +33,18 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const returnTo = pathname + (searchParams.toString() ? `?${searchParams}` : "");
   const menuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
-  // Read browser-only state (localStorage, URL params, session cookie) once on mount.
-  // Must be in effect to avoid hydration mismatch: server always renders null/default.
   useEffect(() => {
-    // Token from __session cookie (set by OAuth callback, never in URL)
     const sessionCookie = document.cookie
       .split("; ")
       .find((c) => c.startsWith("__session="));
@@ -49,7 +52,6 @@ export default function Header() {
       const token = sessionCookie.split("=")[1];
       if (token) {
         localStorage.setItem("token", token);
-        // Clear the session cookie immediately
         document.cookie = "__session=; path=/; max-age=0";
       }
     }
@@ -90,9 +92,21 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [userMenuOpen]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    setUserMenuOpen(false);
     setMenuOpen(false);
     window.location.href = "/";
   };
@@ -121,25 +135,44 @@ export default function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          {/* User — desktop */}
-          {user && (
-            <div className="hidden md:flex items-center gap-2">
-              {user.avatar && (
-                <img src={user.avatar} alt="" className="w-6 h-6 rounded-full" />
-              )}
-              <span className="text-sm text-blue-200">{user.username}</span>
-            </div>
-          )}
-
-          {/* Desktop auth */}
+          {/* Desktop: user dropdown or login */}
           <div className="hidden md:block">
             {user ? (
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
+              <div ref={userMenuRef} className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 transition-colors"
+                >
+                  {user.avatar && (
+                    <img src={user.avatar} alt="" className="w-6 h-6 rounded-full" />
+                  )}
+                  <span className="text-sm text-blue-200">{user.username}</span>
+                  <svg className={`w-3 h-3 text-blue-300 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-[#021526] border border-[#1C598C] rounded-md shadow-lg z-50 py-1">
+                    {USER_MENU_LINKS.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm text-blue-200 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <div className="border-t border-[#1C598C]/30 my-1" />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link
                 href={`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`}
@@ -179,7 +212,7 @@ export default function Header() {
       <div
         ref={menuRef}
         className={`md:hidden overflow-hidden transition-all duration-200 ${
-          menuOpen ? "max-h-80" : "max-h-0"
+          menuOpen ? "max-h-[40rem]" : "max-h-0"
         }`}
       >
         <nav className="bg-[#021526] border-t border-[#1C598C]/30 px-4 py-3 space-y-1">
@@ -193,9 +226,21 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-          <div className="border-t border-[#1C598C]/20 mt-2 pt-2">
-            {user ? (
-              <>
+          {user && (
+            <>
+              <div className="border-t border-[#1C598C]/20 mt-2 pt-2">
+                {USER_MENU_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-3 py-2.5 text-sm text-blue-200/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+              <div className="border-t border-[#1C598C]/20 mt-2 pt-2">
                 <div className="flex items-center gap-2 px-3 py-2">
                   {user.avatar && (
                     <img src={user.avatar} alt="" className="w-5 h-5 rounded-full" />
@@ -208,8 +253,11 @@ export default function Header() {
                 >
                   Logout
                 </button>
-              </>
-            ) : (
+              </div>
+            </>
+          )}
+          {!user && (
+            <div className="border-t border-[#1C598C]/20 mt-2 pt-2">
               <Link
                 href={`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`}
                 onClick={() => setMenuOpen(false)}
@@ -217,8 +265,8 @@ export default function Header() {
               >
                 Login with Discord
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </nav>
       </div>
     </header>

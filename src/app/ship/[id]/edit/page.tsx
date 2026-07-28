@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
+import UserTagEditor from "@/components/tags/UserTagEditor";
+import { extractUserTags } from "@/lib/user-tag-data";
 
 interface Ship {
   id: number;
@@ -27,6 +30,9 @@ export default function EditShipPage() {
 
   const [shipName, setShipName] = useState("");
   const [description, setDescription] = useState("");
+  const [userTags, setUserTags] = useState<string[]>([]);
+  const [autoTags, setAutoTags] = useState<string[]>([]);
+  const [brand, setBrand] = useState("gen");
 
   useEffect(() => {
     const fetchShip = async () => {
@@ -57,6 +63,10 @@ export default function EditShipPage() {
         setShip(data);
         setShipName(data.ship_name);
         setDescription(data.description);
+        setBrand(data.brand === "exl" ? "exl" : "gen");
+        const { userTags: ut, autoTags: at } = extractUserTags(data.tags ?? []);
+        setUserTags(ut);
+        setAutoTags(at);
       } catch (err) {
         console.error("Failed to fetch ship:", err);
       } finally {
@@ -82,6 +92,8 @@ export default function EditShipPage() {
         body: JSON.stringify({
           ship_name: shipName,
           description,
+          tags: [...autoTags, ...userTags],
+          brand,
         }),
       });
       router.push(`/ship/${params.id}`);
@@ -142,25 +154,31 @@ export default function EditShipPage() {
 
           <div>
             <label className="block text-blue-200 mb-1">Tags</label>
-            <div className="flex flex-wrap gap-1">
-              {ship.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-block bg-[#00305e] text-white px-2 py-1 rounded"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {autoTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {autoTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-block bg-[#00305e] text-white/70 text-xs px-2 py-1 rounded"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <UserTagEditor value={userTags} onChange={setUserTags} brand={brand} onBrandChange={setBrand} />
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+            <AddToCollectionButton shipId={ship.id} />
+          </div>
         </div>
       </div>
     </div>

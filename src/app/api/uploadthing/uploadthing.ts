@@ -3,6 +3,7 @@ import { decodeShipFromUrl, decodeShipFromPixels } from "@/lib/server-decode";
 import { calculateShipPrice } from "@/lib/price";
 import { insertShip } from "@/lib/db";
 import { verifyToken, type TokenPayload } from "@/lib/auth";
+import { computeShipSignature } from "@/lib/ship-signature";
 
 const f = createUploadthing();
 
@@ -32,10 +33,22 @@ export const uploadRouter = {
       const description = headers.get("x-description") ?? "";
       const brand = headers.get("x-brand") ?? "gen";
 
+      let userTags: string[] = [];
+      const tagsHeader = headers.get("x-tags");
+      if (tagsHeader) {
+        try {
+          const parsed = JSON.parse(tagsHeader);
+          if (Array.isArray(parsed)) {
+            userTags = parsed.filter((t: unknown) => typeof t === "string");
+          }
+        } catch {}
+      }
+
       return {
         submittedBy: payload?.user?.username ?? "Guest",
         description,
         brand,
+        userTags,
       };
     })
     .onUploadComplete(async ({ file, metadata }) => {
@@ -47,7 +60,11 @@ export const uploadRouter = {
         );
         const shipName = (file.name ?? "unknown").replace(".ship.png", "");
 
-        await insertShip({
+        const signature = computeShipSignature(shipData);
+
+        const allTags = [...new Set([...priceInfo.tags, ...metadata.userTags])];
+
+        const result = await insertShip({
           name: file.name ?? "unknown",
           data: file.ufsUrl,
           submittedBy: metadata.submittedBy,
@@ -57,11 +74,14 @@ export const uploadRouter = {
           price: priceInfo.price,
           brand: metadata.brand,
           crew: priceInfo.crew,
-          tags: priceInfo.tags,
+          tags: allTags,
+          signature,
         });
 
+        return { shipId: result.success ? parseInt(result.success, 10) : null };
       } catch (err) {
         console.error("Failed to process uploaded ship:", err);
+        return { shipId: null };
       }
     }),
 };

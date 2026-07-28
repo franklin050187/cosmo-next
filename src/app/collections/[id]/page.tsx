@@ -22,6 +22,7 @@ export default function CollectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [removing, setRemoving] = useState<number | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   useEffect(() => {
     const fetchCollection = async () => {
@@ -84,6 +85,43 @@ export default function CollectionDetailPage() {
     } catch {}
   };
 
+  const handleDownloadAll = async () => {
+    if (!collection || collection.ships.length === 0) return;
+    setDownloadingAll(true);
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      const folder = zip.folder(collection.title.replace(/[^a-zA-Z0-9_-]/g, "_"));
+      if (!folder) return;
+
+      await Promise.allSettled(
+        collection.ships.map(async (ship) => {
+          try {
+            const res = await fetch(ship.data);
+            if (!res.ok) return;
+            const blob = await res.blob();
+            const name = ship.ship_name?.replace(".ship.png", "") || `ship-${ship.id}`;
+            folder.file(`${name}.png`, blob);
+          } catch {}
+        })
+      );
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${collection.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to create zip:", err);
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
   if (loading) return <p className="text-center text-blue-200">Loading...</p>;
   if (!collection) return <p className="text-center text-red-400">Collection not found</p>;
 
@@ -99,30 +137,41 @@ export default function CollectionDetailPage() {
         All Collections
       </Link>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="mb-6 space-y-3">
         <div>
-          <h1 className="text-4xl text-white uppercase">{collection.title}</h1>
+          <h1 className="text-2xl sm:text-4xl text-white uppercase">{collection.title}</h1>
           <p className="text-blue-200 text-sm mt-1">
             by {collection.owner} · {collection.ships.length} ship{collection.ships.length !== 1 ? "s" : ""}
           </p>
         </div>
 
-        {isOwner && (
-          <div className="flex gap-2">
-            <Link
-              href={`/collections/${collection.id}/edit`}
-              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
-            >
-              Edit
-            </Link>
+        <div className="flex flex-wrap gap-2">
+          {collection.ships.length > 0 && (
             <button
-              onClick={handleDelete}
-              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#8b0000]/25 to-[#5c0000]/25 text-red-400 hover:bg-red-400/20 hover:text-white transition-colors"
+              onClick={handleDownloadAll}
+              disabled={downloadingAll}
+              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
             >
-              Delete
+              {downloadingAll ? "Zipping..." : "Download All"}
             </button>
-          </div>
-        )}
+          )}
+          {isOwner && (
+            <>
+              <Link
+                href={`/collections/${collection.id}/edit`}
+                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
+              >
+                Edit
+              </Link>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#8b0000]/25 to-[#5c0000]/25 text-red-400 hover:bg-red-400/20 hover:text-white transition-colors"
+              >
+                Delete
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {collection.description && (

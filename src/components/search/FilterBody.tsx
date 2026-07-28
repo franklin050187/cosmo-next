@@ -53,6 +53,14 @@ function SortIcon() {
   );
 }
 
+function LibraryIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+    </svg>
+  );
+}
+
 export default function FilterBody({ filters, setFilter, setFilters, clearFilters, showSort = false }: FilterBodyProps) {
   const handleTagChange = useCallback(
     (tagsOn: string[], tagsOff: string[]) => {
@@ -87,6 +95,27 @@ export default function FilterBody({ filters, setFilter, setFilters, clearFilter
 
       <FilterSection title="Author" icon={<AuthorIcon />} badge={filters.author ? 1 : 0}>
         <AuthorFilter value={filters.author} onChange={v => setFilter("author", v)} />
+      </FilterSection>
+
+      <FilterSection title="Library" icon={<LibraryIcon />} badge={filters.brand ? 1 : 0}>
+        <div className="flex gap-1.5 flex-wrap">
+          {(["", "gen", "exl"] as const).map((val) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setFilter("brand", val)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                (filters.brand || "") === val
+                  ? val === "exl"
+                    ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40"
+                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                  : "text-gray-400 border border-[#1C598C]/40 hover:text-white hover:border-cyan-400/20"
+              }`}
+            >
+              {val === "" ? "All" : val === "gen" ? "Casual" : "Excelsior"}
+            </button>
+          ))}
+        </div>
       </FilterSection>
 
       <div className="pt-3">

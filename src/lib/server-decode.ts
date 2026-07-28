@@ -47,7 +47,7 @@ function paeth(a: number, b: number, c: number) {
   return c;
 }
 
-function decodePngPixels(buf: ArrayBuffer) {
+export function decodePngPixels(buf: ArrayBuffer) {
   const chunks = readPngChunks(buf);
   const ihdrChunk = chunks.find((c) => c.type === "IHDR");
   if (!ihdrChunk) throw new Error("No IHDR chunk");

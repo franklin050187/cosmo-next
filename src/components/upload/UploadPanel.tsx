@@ -2,12 +2,20 @@
 
 import { useState, useRef } from "react";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
+import UserTagEditor from "@/components/tags/UserTagEditor";
 
 interface PriceResult {
   price: number;
   crew: number;
   author: string;
   tags: string[];
+}
+
+interface DuplicateShip {
+  id: number;
+  ship_name: string;
+  author: string;
 }
 
 export default function UploadPanel() {
@@ -17,8 +25,13 @@ export default function UploadPanel() {
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<string | null>(null);
+  const [uploadedShipId, setUploadedShipId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [decoding, setDecoding] = useState(false);
+  const [duplicates, setDuplicates] = useState<DuplicateShip[]>([]);
+  const [ackDuplicate, setAckDuplicate] = useState(false);
+  const [userTags, setUserTags] = useState<string[]>([]);
+  const [brand, setBrand] = useState("gen");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +42,11 @@ export default function UploadPanel() {
     setError(null);
     setPriceResult(null);
     setUploadResult(null);
+    setUploadedShipId(null);
+    setDuplicates([]);
+    setAckDuplicate(false);
+    setUserTags([]);
+    setBrand("gen");
     setDecoding(true);
 
     const reader = new FileReader();
@@ -49,6 +67,21 @@ export default function UploadPanel() {
       const data = decodedData as Parameters<typeof calculateShipPrice>[0];
       const result = calculateShipPrice(data);
       setPriceResult(result);
+
+      try {
+        const fd = new FormData();
+        fd.append("file", selected);
+        const dupRes = await fetch("/api/ship/check-duplicate", {
+          method: "POST",
+          body: fd,
+        });
+        const dupData = await dupRes.json();
+        console.log("[duplicate-check] result:", dupData);
+        setDuplicates(dupData.duplicates ?? []);
+      } catch (err) {
+        console.error("[duplicate-check] failed:", err);
+        setDuplicates([]);
+      }
     } catch (err) {
       console.error("Decode error:", err);
       setError(
@@ -72,9 +105,11 @@ export default function UploadPanel() {
         files: [file],
         token: token ?? undefined,
         description,
-        brand: "gen",
+        brand,
+        tags: userTags.length > 0 ? userTags : undefined,
       });
       setUploadResult(url.ufsUrl);
+      setUploadedShipId(url.shipId?.shipId ?? null);
     } catch (err) {
       console.error("Upload error:", err);
       setError("Upload failed");
@@ -89,6 +124,11 @@ export default function UploadPanel() {
     setPriceResult(null);
     setDescription("");
     setUploadResult(null);
+    setUploadedShipId(null);
+    setDuplicates([]);
+    setAckDuplicate(false);
+    setUserTags([]);
+    setBrand("gen");
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -157,6 +197,33 @@ export default function UploadPanel() {
             </div>
           )}
 
+          {duplicates.length > 0 && (
+            <div className="mb-4 p-3 border border-yellow-600 bg-yellow-900/20 rounded">
+              <p className="text-yellow-400 text-sm font-medium mb-1">
+                This ship already exists in the library:
+              </p>
+              {duplicates.map((d) => (
+                <p key={d.id} className="text-yellow-200 text-sm">
+                  <a href={`/ship/${d.id}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-100">
+                    {d.ship_name?.replace(".ship.png", "")}
+                  </a>
+                  {" "}by {d.author}
+                </p>
+              ))}
+              <label className="flex items-center gap-2 mt-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={ackDuplicate}
+                  onChange={(e) => setAckDuplicate(e.target.checked)}
+                  className="w-4 h-4 rounded border-yellow-600 bg-[#021526] text-yellow-400 focus:ring-yellow-500"
+                />
+                <span className="text-yellow-300 text-sm">
+                  I understand this is a duplicate and still want to upload
+                </span>
+              </label>
+            </div>
+          )}
+
           {priceResult && (
             <div className="mb-4">
               <label className="block text-blue-200 mb-1">Description</label>
@@ -169,16 +236,22 @@ export default function UploadPanel() {
             </div>
           )}
 
+          {priceResult && (
+            <div className="mb-4">
+              <UserTagEditor value={userTags} onChange={setUserTags} brand={brand} onBrandChange={setBrand} />
+            </div>
+          )}
+
           {error && <p className="text-red-400 mb-4">{error}</p>}
 
           {priceResult && (
             <div className="flex gap-2">
               <button
                 onClick={handleUpload}
-                disabled={uploading}
-                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
+                disabled={uploading || (duplicates.length > 0 && !ackDuplicate)}
+                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {uploading ? "Uploading..." : "Upload to Library"}
+                {uploading ? "Uploading..." : duplicates.length > 0 ? "Upload Anyway" : "Upload to Library"}
               </button>
               <button
                 onClick={handleReset}
@@ -204,6 +277,9 @@ export default function UploadPanel() {
             >
               Upload Another
             </button>
+            {uploadedShipId && (
+              <AddToCollectionButton shipId={uploadedShipId} />
+            )}
           </div>
         </div>
       )}

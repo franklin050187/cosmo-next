@@ -11,6 +11,7 @@ export async function uploadFiles(opts: {
   token?: string;
   description?: string;
   brand?: string;
+  tags?: string[];
 }) {
   const headers: Record<string, string> = {};
   if (opts.token) {
@@ -22,8 +23,15 @@ export async function uploadFiles(opts: {
   if (opts.brand) {
     headers["x-brand"] = opts.brand;
   }
-  return utUpload("pngUploader", {
+  if (opts.tags && opts.tags.length > 0) {
+    headers["x-tags"] = JSON.stringify(opts.tags);
+  }
+  const results = await utUpload("pngUploader", {
     files: opts.files,
     headers,
   });
+  return results.map((r) => ({
+    ufsUrl: r.ufsUrl,
+    shipId: (r as Record<string, unknown>).serverData as { shipId: number | null } | undefined,
+  }));
 }

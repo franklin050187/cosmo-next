@@ -72,7 +72,7 @@ export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps)
 
   const toggle = useCallback((tag: string) => {
     if (tagsOn.includes(tag)) { onChange(tagsOn.filter(t => t !== tag), [...tagsOff, tag]); }
-    else if (tagsOff.includes(tag)) { onChange(tagsOn, tagsOff.filter(t => t !== tag)); }
+    else if (tagsOff.includes(tag)) { onChange([...tagsOn, tag], tagsOff.filter(t => t !== tag)); }
   }, [tagsOn, tagsOff, onChange]);
 
   const onKey = (e: React.KeyboardEvent) => {
