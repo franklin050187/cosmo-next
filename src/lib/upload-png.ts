@@ -32,6 +32,6 @@ export async function uploadFiles(opts: {
   });
   return results.map((r) => ({
     ufsUrl: r.ufsUrl,
-    shipId: (r as Record<string, unknown>).serverData as { shipId: number | null } | undefined,
+    shipId: (r as unknown as Record<string, unknown>).serverData as { shipId: number | null } | undefined,
   }));
 }
