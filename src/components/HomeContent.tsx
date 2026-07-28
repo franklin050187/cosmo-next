@@ -123,7 +123,7 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
                 <>
                   <span className="text-white font-semibold">{ships.length.toLocaleString()}</span>
                   {" "}of{" "}
-                  <span className="text-white font-semibold">{totalResults.toLocaleString()}</span>
+                  <span className="text-white font-semibold">{totalResults.toLocaleString("en-US")}</span>
                   {" "}ship{totalResults !== 1 ? "s" : ""}
                 </>
               ) : (
