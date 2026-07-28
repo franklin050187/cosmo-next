@@ -18,7 +18,7 @@ function MyCollectionsContent() {
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchCollections = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -29,7 +29,22 @@ function MyCollectionsContent() {
       .then((data) => setCollections(Array.isArray(data) ? data : []))
       .catch(() => setCollections([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchCollections();
   }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this collection?")) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    await fetch(`/api/collections/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchCollections();
+  };
 
   return (
     <>
@@ -52,7 +67,7 @@ function MyCollectionsContent() {
               ? `You have ${collections.length} collection${collections.length !== 1 ? "s" : ""}`
               : "Create your first collection to organize ships!"}
           </p>
-          <CollectionGrid collections={collections} />
+          <CollectionGrid collections={collections} onDelete={handleDelete} />
         </>
       )}
     </>

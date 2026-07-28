@@ -16,12 +16,21 @@ export default function CollectionsBrowsePage() {
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchCollections = () => {
     fetch("/api/collections?page=1")
       .then((r) => r.json())
       .then((data) => setCollections(data.data ?? []))
       .catch(() => setCollections([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchCollections();
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) fetchCollections();
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
   return (

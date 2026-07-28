@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { isTokenExpired } from "@/lib/auth";
 
 interface User {
   username: string;
@@ -59,17 +60,21 @@ export default function Header() {
 
     const stored = localStorage.getItem("token");
     if (stored) {
-      try {
-        const payload = JSON.parse(atob(stored.split(".")[1]));
-        if (payload.user) {
-          setUser(payload.user); // eslint-disable-line react-hooks/set-state-in-effect
-          fetch("/api/auth/is-admin", { headers: { authorization: `Bearer ${stored}` } })
-            .then((r) => r.json())
-            .then((d) => setIsAdmin(d.isAdmin))
-            .catch(() => setIsAdmin(false));
-        }
-      } catch {
+      if (isTokenExpired(stored)) {
         localStorage.removeItem("token");
+      } else {
+        try {
+          const payload = JSON.parse(atob(stored.split(".")[1]));
+          if (payload.user) {
+            setUser(payload.user); // eslint-disable-line react-hooks/set-state-in-effect
+            fetch("/api/auth/is-admin", { headers: { authorization: `Bearer ${stored}` } })
+              .then((r) => r.json())
+              .then((d) => setIsAdmin(d.isAdmin))
+              .catch(() => setIsAdmin(false));
+          }
+        } catch {
+          localStorage.removeItem("token");
+        }
       }
     }
 
