@@ -19,6 +19,7 @@ const ShipPriceAnalysis = dynamic(
 );
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
 import { isTokenExpired } from "@/lib/auth";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface Ship {
   id: number;
@@ -55,16 +56,20 @@ export default function ShipDetailPage() {
   });
 
   useEffect(() => {
+    let active = true;
+
     const fetchShip = async () => {
       try {
         const res = await fetch(`/api/ship/${params.id}`);
         if (!res.ok) throw new Error("Ship not found");
         const data = await res.json();
+        if (!active) return;
         setShip(data);
+        document.title = `${data.ship_name?.replace(".ship.png", "")} - CosmoShip`;
 
         fetch(`/api/collections?shipId=${params.id}`)
           .then((r) => r.json())
-          .then((d) => setCollections(d.data ?? []))
+          .then((d) => { if (active) setCollections(d.data ?? []); })
           .catch(() => {});
 
         const token = localStorage.getItem("token");
@@ -80,13 +85,14 @@ export default function ShipDetailPage() {
           localStorage.removeItem("token");
         }
       } catch {
-        setError("Ship not found");
+        if (active) setError("Ship not found");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchShip();
+    return () => { active = false; };
   }, [params.id]);
 
   const handleFavorite = async () => {
@@ -206,7 +212,7 @@ export default function ShipDetailPage() {
             </p>
             <p className="text-white mb-2">
               <span className="text-blue-200">Description:</span>{" "}
-              <span dangerouslySetInnerHTML={{ __html: ship.description }} />
+              <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(ship.description) }} />
             </p>
             <p className="text-[#0AD448] mb-2">
               <span className="text-blue-200">Cost:</span> {ship.price}₡

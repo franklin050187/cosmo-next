@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDashboardData } from "@/lib/analytics-db";
+import { verifyRequest } from "@/lib/auth";
+import { verifyTurnstileToken, getTurnstileTokenFromReq } from "@/lib/turnstile";
 
 const ADMIN_USERNAMES = (process.env.ADMIN_USERNAMES || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
-function getUserFromRequest(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.user as { id: string; username: string } | undefined;
-    } catch {}
-  }
-}
-
 export async function GET(req: NextRequest) {
-  const user = getUserFromRequest(req);
-  if (!user || !ADMIN_USERNAMES.includes(user.username)) {
+  const payload = verifyRequest(req);
+  if (!payload?.user || !ADMIN_USERNAMES.includes(payload.user.username)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 403 });
+  }
+
+  if (process.env.NODE_ENV !== "development") {
+    const turnstileToken = getTurnstileTokenFromReq(req);
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+    const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
+    if (!turnstileOk) {
+      return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });
+    }
   }
 
   try {

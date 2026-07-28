@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   title: "CosmoShip : Cosmoteer Library",
   description:
     "Website for sharing, searching, browsing and downloading ships design for Cosmoteer: Starship Architect & Commander.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#021526",
 };
 
 export default function RootLayout({

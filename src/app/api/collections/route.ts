@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRequest } from "@/lib/auth";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function GET(req: NextRequest) {
   const shipId = req.nextUrl.searchParams.get("shipId");
@@ -30,6 +31,15 @@ export async function POST(req: NextRequest) {
   const title = body.title?.trim();
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
+  }
+
+  if (process.env.NODE_ENV !== "development") {
+    const turnstileToken = body["cf-turnstile-response"] || "";
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+    const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
+    if (!turnstileOk) {
+      return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });
+    }
   }
 
   const { createCollection } = await import("@/lib/db");

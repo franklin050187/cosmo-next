@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRequest } from "@/lib/auth";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function GET(
   _req: NextRequest,
@@ -36,6 +37,16 @@ export async function PUT(
   }
 
   const body = await req.json();
+
+  if (process.env.NODE_ENV !== "development") {
+    const turnstileToken = body["cf-turnstile-response"] || "";
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+    const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
+    if (!turnstileOk) {
+      return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });
+    }
+  }
+
   const { updateCollection } = await import("@/lib/db");
   const result = await updateCollection(collectionId, payload.user.username, {
     title: body.title,

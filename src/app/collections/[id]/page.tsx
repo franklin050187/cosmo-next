@@ -6,6 +6,7 @@ import Link from "next/link";
 import ShipGrid from "@/components/ship/ShipGrid";
 import { type ShipRow } from "@/lib/types";
 import { trackEvent } from "@/lib/analytics-client";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface Collection {
   id: number;
@@ -26,12 +27,16 @@ export default function CollectionDetailPage() {
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     const fetchCollection = async () => {
       try {
         const res = await fetch(`/api/collections/${params.id}`);
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
+        if (!active) return;
         setCollection(data);
+        document.title = `${data.title} - CosmoShip`;
         trackEvent("collection_view");
 
         const token = localStorage.getItem("token");
@@ -44,13 +49,14 @@ export default function CollectionDetailPage() {
           } catch {}
         }
       } catch {
-        setCollection(null);
+        if (active) setCollection(null);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchCollection();
+    return () => { active = false; };
   }, [params.id]);
 
   const handleRemove = async (shipId: number) => {
@@ -179,7 +185,7 @@ export default function CollectionDetailPage() {
       </div>
 
       {collection.description && (
-        <div className="text-white mb-6" dangerouslySetInnerHTML={{ __html: collection.description }} />
+        <div className="text-white mb-6" dangerouslySetInnerHTML={{ __html: sanitizeHtml(collection.description) }} />
       )}
 
       {collection.ships.length > 0 ? (

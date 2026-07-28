@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface CollectionSummary {
   id: number;
@@ -25,7 +26,7 @@ export default function CollectionCard({ collection, onDelete }: Props) {
           {collection.title}
         </h3>
         {collection.description && (
-          <p className="text-blue-200 text-sm mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: collection.description }} />
+          <p className="text-blue-200 text-sm mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: sanitizeHtml(collection.description) }} />
         )}
         <div className="flex items-center justify-between mt-3 text-xs text-blue-300">
           <span>by {collection.owner}</span>

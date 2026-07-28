@@ -28,6 +28,35 @@ async function query(text: string, params?: unknown[]) {
   }
 }
 
+async function queryOnClient(client: pg.PoolClient, text: string, params?: unknown[]) {
+  return client.query(text, params);
+}
+
+async function fetchAllOnClient(client: pg.PoolClient, text: string, params?: unknown[]) {
+  const { rows } = await queryOnClient(client, text, params);
+  return rows ?? [];
+}
+
+async function fetchOneOnClient(client: pg.PoolClient, text: string, params?: unknown[]) {
+  const rows = await fetchAllOnClient(client, text, params);
+  return rows[0] ?? null;
+}
+
+async function transaction<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await queryOnClient(client, "BEGIN");
+    const result = await fn(client);
+    await queryOnClient(client, "COMMIT");
+    return result;
+  } catch (e) {
+    await queryOnClient(client, "ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 export async function fetchAll(text: string, params?: unknown[]) {
   const { rows } = await query(text, params);
   return rows ?? [];
@@ -71,15 +100,17 @@ export async function updateDownloads(shipId: number) {
 }
 
 export async function deleteShip(shipId: number, user: string) {
-  const row = await fetchOne("SELECT submitted_by, data FROM shipdb WHERE id = $1", [shipId]);
-  if (!row || user !== row.submitted_by) return { error: "not the owner" };
+  return transaction(async (client) => {
+    const row = await fetchOneOnClient(client, "SELECT submitted_by, data FROM shipdb WHERE id = $1", [shipId]);
+    if (!row || user !== row.submitted_by) return { error: "not the owner" };
 
-  await query("UPDATE collections SET ships = array_remove(ships, $1) WHERE $1 = ANY(ships)", [shipId]);
-  await query("UPDATE favoritedb SET favorite = array_remove(favorite, $1) WHERE $1 = ANY(favorite)", [shipId]);
-  await query("DELETE FROM favoritedb WHERE array_length(favorite, 1) IS NULL", []);
-
-  await query("DELETE FROM shipdb WHERE id = $1", [shipId]);
-  return { success: `ship ${shipId} deleted`, data: row.data };
+    await queryOnClient(client, "UPDATE collections SET ships = array_remove(ships, $1) WHERE $1 = ANY(ships)", [shipId]);
+    await queryOnClient(client, "UPDATE favoritedb SET favorite = array_remove(favorite, $1) WHERE $1 = ANY(favorite)", [shipId]);
+    await queryOnClient(client, "DELETE FROM favoritedb WHERE array_length(favorite, 1) IS NULL", []);
+    await queryOnClient(client, "DELETE FROM ship_signatures WHERE ship_id = $1", [shipId]);
+    await queryOnClient(client, "DELETE FROM shipdb WHERE id = $1 AND submitted_by = $2", [shipId, user]);
+    return { success: `ship ${shipId} deleted`, data: row.data };
+  });
 }
 
 export async function insertShip({
@@ -107,19 +138,23 @@ export async function insertShip({
   tags: string[];
   signature?: string;
 }) {
-  const { rows } = await query(
-    `INSERT INTO shipdb (name, data, submitted_by, description, ship_name, author, price, brand, crew, tags)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::text[]) RETURNING id`,
-    [name, data, submittedBy, description, shipName, author, price, brand, crew, tags],
-  );
-  const shipId = rows[0]?.id;
-  if (shipId && signature) {
-    await query(
-      "INSERT INTO ship_signatures (ship_id, signature) VALUES ($1, $2)",
-      [shipId, signature],
+  return transaction(async (client) => {
+    const { rows } = await queryOnClient(
+      client,
+      `INSERT INTO shipdb (name, data, submitted_by, description, ship_name, author, price, brand, crew, tags)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::text[]) RETURNING id`,
+      [name, data, submittedBy, description, shipName, author, price, brand, crew, tags],
     );
-  }
-  return { success: `${shipId}` };
+    const shipId = rows[0]?.id;
+    if (shipId && signature) {
+      await queryOnClient(
+        client,
+        "INSERT INTO ship_signatures (ship_id, signature) VALUES ($1, $2)",
+        [shipId, signature],
+      );
+    }
+    return { success: `${shipId}` };
+  });
 }
 
 export async function updateShip({
@@ -134,6 +169,7 @@ export async function updateShip({
   brand,
   crew,
   tags,
+  signature,
 }: {
   id: number;
   name: string;
@@ -146,13 +182,25 @@ export async function updateShip({
   brand: string;
   crew: number;
   tags: string[];
+  signature?: string;
 }) {
-  await query(
-    `UPDATE shipdb SET name=$1, data=$2, submitted_by=$3, description=$4, ship_name=$5,
-     author=$6, price=$7, brand=$8, crew=$9, tags=$10::text[] WHERE id=$11`,
-    [name, data, submittedBy, description, shipName, author, price, brand, crew, tags, id],
-  );
-  return { success: "ship updated" };
+  return transaction(async (client) => {
+    await queryOnClient(
+      client,
+      `UPDATE shipdb SET name=$1, data=$2, submitted_by=$3, description=$4, ship_name=$5,
+       author=$6, price=$7, brand=$8, crew=$9, tags=$10::text[] WHERE id=$11`,
+      [name, data, submittedBy, description, shipName, author, price, brand, crew, tags, id],
+    );
+    if (signature) {
+      await queryOnClient(client, "DELETE FROM ship_signatures WHERE ship_id = $1", [id]);
+      await queryOnClient(
+        client,
+        "INSERT INTO ship_signatures (ship_id, signature) VALUES ($1, $2)",
+        [id, signature],
+      );
+    }
+    return { success: "ship updated" };
+  });
 }
 
 // ── Favorites ──────────────────────────────────────────────────────
@@ -166,30 +214,36 @@ export async function getMyFavorites(user: string) {
 }
 
 export async function addToFavorites(user: string, shipId: number) {
-  const row = await fetchOne("SELECT favorite FROM favoritedb WHERE name = $1", [user]);
-  if (!row) {
-    await query("INSERT INTO favoritedb (name, favorite) VALUES ($1, $2::int[])", [user, [shipId]]);
-  } else if (row.favorite.includes(shipId)) {
-    return { warning: "already in favorites" };
-  } else {
-    await query("UPDATE favoritedb SET favorite = favorite || $1::int[] WHERE name = $2", [[shipId], user]);
-  }
-  await query("UPDATE shipdb SET fav = fav + 1 WHERE id = $1", [shipId]);
+  return transaction(async (client) => {
+    const row = await fetchOneOnClient(client, "SELECT favorite FROM favoritedb WHERE name = $1 FOR UPDATE", [user]);
+    if (!row) {
+      await queryOnClient(client, "INSERT INTO favoritedb (name, favorite) VALUES ($1, $2::int[])", [user, [shipId]]);
+    } else if (row.favorite.includes(shipId)) {
+      return { warning: "already in favorites" };
+    } else {
+      await queryOnClient(client, "UPDATE favoritedb SET favorite = favorite || $1::int[] WHERE name = $2", [[shipId], user]);
+    }
+    await queryOnClient(client, "UPDATE shipdb SET fav = fav + 1 WHERE id = $1", [shipId]);
+    return { success: "favorited" };
+  });
 }
 
 export async function deleteFromFavorites(user: string, shipId: number) {
-  const row = await fetchOne("SELECT favorite FROM favoritedb WHERE name = $1", [user]);
-  if (!row) return { warning: "not in favorites" };
-  const favorites: number[] = row.favorite;
-  const idx = favorites.indexOf(shipId);
-  if (idx === -1) return { warning: "not in favorites" };
-  favorites.splice(idx, 1);
-  if (favorites.length === 0) {
-    await query("DELETE FROM favoritedb WHERE name = $1", [user]);
-  } else {
-    await query("UPDATE favoritedb SET favorite = $1::int[] WHERE name = $2", [favorites, user]);
-  }
-  await query("UPDATE shipdb SET fav = fav - 1 WHERE id = $1", [shipId]);
+  return transaction(async (client) => {
+    const row = await fetchOneOnClient(client, "SELECT favorite FROM favoritedb WHERE name = $1 FOR UPDATE", [user]);
+    if (!row) return { warning: "not in favorites" };
+    const favorites: number[] = row.favorite;
+    const idx = favorites.indexOf(shipId);
+    if (idx === -1) return { warning: "not in favorites" };
+    favorites.splice(idx, 1);
+    if (favorites.length === 0) {
+      await queryOnClient(client, "DELETE FROM favoritedb WHERE name = $1", [user]);
+    } else {
+      await queryOnClient(client, "UPDATE favoritedb SET favorite = $1::int[] WHERE name = $2", [favorites, user]);
+    }
+    await queryOnClient(client, "UPDATE shipdb SET fav = fav - 1 WHERE id = $1", [shipId]);
+    return { success: "unfavorited" };
+  });
 }
 
 // ── Collections ───────────────────────────────────────────────────
@@ -282,7 +336,7 @@ export async function addShipToCollection(collectionId: number, shipId: number, 
   if (!col) return { error: "collection not found" };
   if (col.owner !== owner) return { error: "not the owner" };
   if (col.ships?.includes(shipId)) return { warning: "ship already in collection" };
-  await query("UPDATE collections SET ships = ships || $1::int[] WHERE id = $2", [[shipId], collectionId]);
+  await query("UPDATE collections SET ships = COALESCE(ships, '{}') || $1::int[] WHERE id = $2", [[shipId], collectionId]);
   return { success: "ship added" };
 }
 

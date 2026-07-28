@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import RequireAuth from "@/components/RequireAuth";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { trackEvent } from "@/lib/analytics-client";
 
 function NewCollectionContent() {
@@ -12,10 +14,17 @@ function NewCollectionContent() {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   const handleCreate = async () => {
     if (!title.trim()) {
       setError("Title is required");
+      return;
+    }
+
+    const turnstileToken = turnstileRef.current?.getToken();
+    if (!turnstileToken) {
+      setError("Please complete the Turnstile captcha.");
       return;
     }
 
@@ -31,7 +40,7 @@ function NewCollectionContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+        body: JSON.stringify({ title: title.trim(), description: description.trim(), "cf-turnstile-response": turnstileToken }),
       });
       const data = await res.json();
       if (data.id) {
@@ -39,9 +48,11 @@ function NewCollectionContent() {
         router.push(`/collections/${data.id}`);
       } else {
         setError(data.error ?? "Failed to create");
+        turnstileRef.current?.reset();
       }
     } catch {
       setError("Failed to create collection");
+      turnstileRef.current?.reset();
     } finally {
       setSaving(false);
     }
@@ -76,6 +87,8 @@ function NewCollectionContent() {
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        <TurnstileWidget ref={turnstileRef} />
 
         <button
           onClick={handleCreate}

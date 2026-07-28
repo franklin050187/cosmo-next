@@ -4,6 +4,7 @@ import { calculateShipPrice } from "@/lib/price";
 import { insertShip } from "@/lib/db";
 import { verifyToken, type TokenPayload } from "@/lib/auth";
 import { computeShipSignature } from "@/lib/ship-signature";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const f = createUploadthing();
 
@@ -48,6 +49,15 @@ export const uploadRouter = {
         throw new Error(
           "You must be logged in to upload ships. Please log in and try again."
         );
+      }
+
+      if (process.env.NODE_ENV !== "development") {
+        const turnstileToken = headers.get("x-turnstile-token") || "";
+        const ip = headers.get("x-forwarded-for") || headers.get("x-real-ip") || "";
+        const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
+        if (!turnstileOk) {
+          throw new Error("Turnstile verification failed. Please complete the captcha.");
+        }
       }
 
       return {

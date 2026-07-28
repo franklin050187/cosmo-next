@@ -29,7 +29,8 @@ export async function POST(req: Request) {
     }
     const duplicates = await findDuplicateBySignature(signature);
     return NextResponse.json({ duplicates });
-  } catch {
-    return NextResponse.json({ duplicates: [] });
+  } catch (err) {
+    console.error("check-duplicate error:", err);
+    return NextResponse.json({ error: "duplicate check failed" }, { status: 500 });
   }
 }

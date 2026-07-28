@@ -12,6 +12,7 @@ export async function uploadFiles(opts: {
   description?: string;
   brand?: string;
   tags?: string[];
+  turnstileToken?: string;
 }) {
   const headers: Record<string, string> = {};
   if (opts.token) {
@@ -25,6 +26,9 @@ export async function uploadFiles(opts: {
   }
   if (opts.tags && opts.tags.length > 0) {
     headers["x-tags"] = JSON.stringify(opts.tags);
+  }
+  if (opts.turnstileToken) {
+    headers["x-turnstile-token"] = opts.turnstileToken;
   }
   const results = await utUpload("pngUploader", {
     files: opts.files,

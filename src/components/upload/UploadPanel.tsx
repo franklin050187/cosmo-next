@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
 import UserTagEditor from "@/components/tags/UserTagEditor";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 
 interface PriceResult {
   price: number;
@@ -33,6 +35,7 @@ export default function UploadPanel() {
   const [userTags, setUserTags] = useState<string[]>([]);
   const [brand, setBrand] = useState("gen");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -76,7 +79,6 @@ export default function UploadPanel() {
           body: fd,
         });
         const dupData = await dupRes.json();
-        console.log("[duplicate-check] result:", dupData);
         setDuplicates(dupData.duplicates ?? []);
       } catch (err) {
         console.error("[duplicate-check] failed:", err);
@@ -95,6 +97,12 @@ export default function UploadPanel() {
   const handleUpload = async () => {
     if (!file || !priceResult) return;
 
+    const turnstileToken = turnstileRef.current?.getToken();
+    if (!turnstileToken) {
+      setError("Please complete the Turnstile captcha.");
+      return;
+    }
+
     setUploading(true);
     setError(null);
 
@@ -107,6 +115,7 @@ export default function UploadPanel() {
         description,
         brand,
         tags: userTags.length > 0 ? userTags : undefined,
+        turnstileToken,
       });
       setUploadResult(url.ufsUrl);
       setUploadedShipId(url.shipId?.shipId ?? null);
@@ -119,6 +128,7 @@ export default function UploadPanel() {
   };
 
   const handleReset = () => {
+    turnstileRef.current?.reset();
     setFile(null);
     setPreview(null);
     setPriceResult(null);
@@ -248,6 +258,10 @@ export default function UploadPanel() {
                 )}
 
                 {error && <p className="text-red-400">{error}</p>}
+
+                {priceResult && (
+                  <TurnstileWidget ref={turnstileRef} />
+                )}
 
                 {priceResult && (
                   <div className="flex gap-2">

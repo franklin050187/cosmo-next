@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import RequireAuth from "@/components/RequireAuth";
 import { type ShipRow } from "@/lib/types";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { trackEvent } from "@/lib/analytics-client";
 
 interface Collection {
@@ -25,8 +27,11 @@ function EditCollectionContent() {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   useEffect(() => {
+    let active = true;
+
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/");
@@ -38,6 +43,7 @@ function EditCollectionContent() {
     })
       .then((r) => r.json())
       .then((data) => {
+        if (!active) return;
         let isOwner = false;
         try {
           const payload = JSON.parse(atob(token.split(".")[1]));
@@ -53,14 +59,22 @@ function EditCollectionContent() {
         setTitle(data.title);
         setDescription(data.description ?? "");
       })
-      .catch(() => router.push("/"))
-      .finally(() => setLoading(false));
+      .catch(() => { if (active) router.push("/"); })
+      .finally(() => { if (active) setLoading(false); });
+
+    return () => { active = false; };
   }, [params.id, router]);
 
   const handleSave = async () => {
     if (!title.trim() || !collection) return;
     const token = localStorage.getItem("token");
     if (!token) return;
+
+    const turnstileToken = turnstileRef.current?.getToken();
+    if (!turnstileToken) {
+      setError("Please complete the Turnstile captcha.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -71,17 +85,19 @@ function EditCollectionContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+        body: JSON.stringify({ title: title.trim(), description: description.trim(), "cf-turnstile-response": turnstileToken }),
       });
       const data = await res.json();
       if (data.error) {
         setError(data.error);
+        turnstileRef.current?.reset();
       } else {
         trackEvent("collection_edit");
         router.push(`/collections/${collection.id}`);
       }
     } catch {
       setError("Failed to save");
+      turnstileRef.current?.reset();
     } finally {
       setSaving(false);
     }
@@ -117,6 +133,8 @@ function EditCollectionContent() {
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        <TurnstileWidget ref={turnstileRef} />
 
         <div className="flex gap-2">
           <button

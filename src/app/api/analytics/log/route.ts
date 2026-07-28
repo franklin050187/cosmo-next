@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logEvent } from "@/lib/analytics-db";
-
-function getUserFromRequest(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.user as { id: string; username: string; guild?: string } | undefined;
-    } catch {}
-  }
-}
+import { verifyRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +17,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "event_type is required" }, { status: 400 });
     }
 
-    const user = getUserFromRequest(req);
+    const payload = verifyRequest(req);
+    const user = payload?.user;
     const ship_id = body.ship_id != null ? Number(body.ship_id) : undefined;
     const url = body.url ? String(body.url) : undefined;
     const metadata = body.metadata as Record<string, unknown> | undefined;
