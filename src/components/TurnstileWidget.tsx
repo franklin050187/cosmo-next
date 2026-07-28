@@ -3,7 +3,7 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 
 interface TurnstileWidgetProps {
-  onVerify?: () => void;
+  onVerify?: (token: string) => void;
 }
 
 export interface TurnstileWidgetHandle {
@@ -43,7 +43,7 @@ const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
         if ((window as any).turnstile && container) {
           widgetIdRef.current = (window as any).turnstile.render(container, {
             sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY || "",
-            callback: () => onVerifyRef.current?.(),
+            callback: (token: string) => onVerifyRef.current?.(token),
           });
         }
       };

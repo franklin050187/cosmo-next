@@ -32,6 +32,12 @@ broken-links.log
 # vercel
 .vercel
 
+# opencode
+.opencode/
+
+# docs
+CODE_REVIEW_FINDINGS.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

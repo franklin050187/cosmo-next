@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DashboardData } from "@/lib/analytics-db";
 import TurnstileWidget from "@/components/TurnstileWidget";
-import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -12,7 +11,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [turnstilePassed, setTurnstilePassed] = useState(false);
-  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   useEffect(() => {
     if (!turnstilePassed) return;
@@ -25,7 +24,6 @@ export default function AdminPage() {
         return;
       }
       try {
-        const turnstileToken = turnstileRef.current?.getToken() || "";
         const res = await fetch("/api/analytics/dashboard", {
           headers: {
             authorization: `Bearer ${token}`,
@@ -53,7 +51,7 @@ export default function AdminPage() {
       <div className="flex flex-col items-center justify-center pt-20 gap-6">
         <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
         <p className="text-blue-200 text-sm">Complete the captcha to access the dashboard.</p>
-        <TurnstileWidget ref={turnstileRef} onVerify={() => setTurnstilePassed(true)} />
+        <TurnstileWidget onVerify={(token) => { setTurnstileToken(token); setTurnstilePassed(true); }} />
       </div>
     );
   }
