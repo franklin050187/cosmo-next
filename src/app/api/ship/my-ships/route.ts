@@ -8,6 +8,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await getMyShips(payload.user.username);
-  return NextResponse.json(result);
+  try {
+    const result = await getMyShips(payload.user.username);
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("ship/my-ships error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }

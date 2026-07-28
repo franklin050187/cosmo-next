@@ -17,6 +17,11 @@ export async function POST(
     return NextResponse.json({ error: "Invalid ship ID" }, { status: 400 });
   }
 
-  await addToFavorites(payload.user.username, shipId);
-  return NextResponse.json({ success: true });
+  try {
+    await addToFavorites(payload.user.username, shipId);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("ship/[id]/favorite error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }

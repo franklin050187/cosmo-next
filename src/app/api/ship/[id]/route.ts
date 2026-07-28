@@ -7,18 +7,23 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const shipId = parseInt(id, 10);
-  if (isNaN(shipId)) {
-    return NextResponse.json({ error: "Invalid ship ID" }, { status: 400 });
-  }
+  try {
+    const { id } = await params;
+    const shipId = parseInt(id, 10);
+    if (isNaN(shipId)) {
+      return NextResponse.json({ error: "Invalid ship ID" }, { status: 400 });
+    }
 
-  const ship = await getImageData(shipId);
-  if (!ship) {
-    return NextResponse.json({ error: "Ship not found" }, { status: 404 });
-  }
+    const ship = await getImageData(shipId);
+    if (!ship) {
+      return NextResponse.json({ error: "Ship not found" }, { status: 404 });
+    }
 
-  return NextResponse.json(ship);
+    return NextResponse.json(ship);
+  } catch (err) {
+    console.error("ship/[id] GET error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }
 
 export async function PUT(
@@ -83,23 +88,28 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid ship ID" }, { status: 400 });
   }
 
-  const result = await deleteShip(shipId, payload.user.username);
-  if ("error" in result) {
-    return NextResponse.json(result, { status: 403 });
-  }
-
-  if (result.data) {
-    try {
-      const url = new URL(result.data);
-      const fileKey = url.pathname.split("/").pop();
-      if (fileKey) {
-        const utapi = new UTApi();
-        await utapi.deleteFiles(fileKey);
-      }
-    } catch {
-      // best-effort — file may already be gone
+  try {
+    const result = await deleteShip(shipId, payload.user.username);
+    if ("error" in result) {
+      return NextResponse.json(result, { status: 403 });
     }
-  }
 
-  return NextResponse.json({ success: result.success });
+    if (result.data) {
+      try {
+        const url = new URL(result.data);
+        const fileKey = url.pathname.split("/").pop();
+        if (fileKey) {
+          const utapi = new UTApi();
+          await utapi.deleteFiles(fileKey);
+        }
+      } catch {
+        // best-effort — file may already be gone
+      }
+    }
+
+    return NextResponse.json({ success: result.success });
+  } catch (err) {
+    console.error("ship/[id] DELETE error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }

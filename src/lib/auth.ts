@@ -43,7 +43,7 @@ export function isTokenExpired(token: string): boolean {
 }
 
 export function verifyToken(token: string): TokenPayload {
-  return jwt.verify(token, getJwtSecret()) as TokenPayload;
+  return jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] }) as TokenPayload;
 }
 
 export function getTokenFromRequest(req: Request): string | null {

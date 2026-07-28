@@ -104,11 +104,14 @@ export default function EditShipPage() {
     }
   };
 
+  useEffect(() => {
+    if (notOwner) {
+      router.push(`/ship/${params.id}`);
+    }
+  }, [notOwner, params.id, router]);
+
   if (loading) return <p className="text-center text-blue-200">Loading...</p>;
-  if (notOwner) {
-    router.push(`/ship/${params.id}`);
-    return null;
-  }
+  if (notOwner) return null;
   if (!ship) return <p className="text-center text-red-400">Ship not found</p>;
 
   return (

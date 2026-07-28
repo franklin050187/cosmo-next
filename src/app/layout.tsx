@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -38,14 +39,18 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://ufs.sh" />
       </head>
       <body className={`${spaceGrotesk.className} min-h-screen flex flex-col`}>
-        <Suspense fallback={null}>
-          <Header />
-        </Suspense>
-        <AnalyticsTracker />
-        <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 pt-[72px] pb-20">
-          {children}
-        </main>
-        <Footer />
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <Header />
+          </Suspense>
+          <AnalyticsTracker />
+          <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 pt-[72px] pb-20">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
+          <Footer />
+        </ErrorBoundary>
       </body>
     </html>
   );

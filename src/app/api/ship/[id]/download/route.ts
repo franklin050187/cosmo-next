@@ -11,6 +11,11 @@ export async function POST(
     return NextResponse.json({ error: "Invalid ship ID" }, { status: 400 });
   }
 
-  await updateDownloads(shipId);
-  return NextResponse.json({ success: true });
+  try {
+    await updateDownloads(shipId);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("ship/[id]/download error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }

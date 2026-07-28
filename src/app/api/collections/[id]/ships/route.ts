@@ -22,13 +22,18 @@ export async function POST(
     return NextResponse.json({ error: "shipId required" }, { status: 400 });
   }
 
-  const { addShipToCollection } = await import("@/lib/db");
-  const result = await addShipToCollection(collectionId, shipId, payload.user.username);
+  try {
+    const { addShipToCollection } = await import("@/lib/db");
+    const result = await addShipToCollection(collectionId, shipId, payload.user.username);
 
-  if ("error" in result) {
-    return NextResponse.json(result, {
-      status: result.error === "not the owner" ? 403 : 404,
-    });
+    if ("error" in result) {
+      return NextResponse.json(result, {
+        status: result.error === "not the owner" ? 403 : 404,
+      });
+    }
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("collections/[id]/ships error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
-  return NextResponse.json(result);
 }

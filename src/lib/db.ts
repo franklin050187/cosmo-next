@@ -6,14 +6,24 @@ let pool: pg.Pool | null = null;
 
 function getPool(): pg.Pool {
   if (!pool) {
+    const host = process.env.POSTGRES_HOST;
+    const database = process.env.POSTGRES_DATABASE;
+    const user = process.env.POSTGRES_USER;
+    const password = process.env.POSTGRES_PASSWORD;
+    if (!host || !database || !user || !password) {
+      throw new Error("Missing required PG env vars: POSTGRES_HOST, POSTGRES_DATABASE, POSTGRES_USER, POSTGRES_PASSWORD");
+    }
     pool = new pg.Pool({
-      host: process.env.POSTGRES_HOST,
+      host,
       port: parseInt(process.env.POSTGRES_PORT ?? "6543", 10),
-      database: process.env.POSTGRES_DATABASE,
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
+      database,
+      user,
+      password,
       ssl: { rejectUnauthorized: false },
       max: 10,
+    });
+    pool.on("error", (err) => {
+      console.error("Unexpected PostgreSQL pool error:", err);
     });
   }
   return pool;
@@ -421,8 +431,12 @@ export async function getSearchPlus(filters: SearchFilters) {
   const limit = page === -1 ? 999999 : PAGE_SIZE;
   const offset = page === -1 ? null : (page - 1) * PAGE_SIZE;
 
-  let sql = `SELECT * FROM shipdb${where} ORDER BY ${order} LIMIT ${limit}`;
-  if (offset != null) sql += ` OFFSET ${offset}`;
+  args.push(limit);
+  let sql = `SELECT * FROM shipdb${where} ORDER BY ${order} LIMIT $${args.length}`;
+  if (offset != null) {
+    args.push(offset);
+    sql += ` OFFSET $${args.length}`;
+  }
 
   const data = await fetchAll(sql, args);
   const total_count = parseInt(countRow?.count ?? "0", 10);

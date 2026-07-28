@@ -7,7 +7,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { getUserCollections } = await import("@/lib/db");
-  const data = await getUserCollections(payload.user.username);
-  return NextResponse.json(data);
+  try {
+    const { getUserCollections } = await import("@/lib/db");
+    const data = await getUserCollections(payload.user.username);
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error("collections/mine error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }

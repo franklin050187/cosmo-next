@@ -50,10 +50,11 @@ export default function ShipDetailPage() {
   const [showJson, setShowJson] = useState(false);
   const [showPriceAnalysis, setShowPriceAnalysis] = useState(false);
   const [collections, setCollections] = useState<{ id: number; title: string; owner: string }[]>([]);
-  const [backUrl] = useState(() => {
-    if (typeof window === "undefined") return "/";
-    return sessionStorage.getItem("shipBackUrl") || "/";
-  });
+  const [backUrl, setBackUrl] = useState("/");
+
+  useEffect(() => {
+    setBackUrl(sessionStorage.getItem("shipBackUrl") || "/");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -287,6 +288,7 @@ export default function ShipDetailPage() {
               ) : (
                 <Link
                   href={`/auth/discord?returnTo=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/")}`}
+                  suppressHydrationWarning
                   className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#5865F2]/25 to-[#4752C4]/25 text-[#5865F2] hover:bg-[#5865F2]/20 hover:text-white transition-colors"
                 >
                   Login to favorite

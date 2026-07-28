@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { priceAnalysis } from "@/lib/price-analysis";
 import type { DecodedShip } from "@/hooks/useShipDecode";
 
@@ -97,7 +97,7 @@ function drawRadarChart(
 
 export default function ShipPriceAnalysis({ decoded }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const analysis = priceAnalysis(decoded);
+  const analysis = useMemo(() => priceAnalysis(decoded), [decoded]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

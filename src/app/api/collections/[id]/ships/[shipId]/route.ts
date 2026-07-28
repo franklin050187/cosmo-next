@@ -17,17 +17,22 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const { removeShipFromCollection } = await import("@/lib/db");
-  const result = await removeShipFromCollection(
-    collectionId,
-    shipIdNum,
-    payload.user.username,
-  );
+  try {
+    const { removeShipFromCollection } = await import("@/lib/db");
+    const result = await removeShipFromCollection(
+      collectionId,
+      shipIdNum,
+      payload.user.username,
+    );
 
-  if ("error" in result) {
-    return NextResponse.json(result, {
-      status: result.error === "not the owner" ? 403 : 404,
-    });
+    if ("error" in result) {
+      return NextResponse.json(result, {
+        status: result.error === "not the owner" ? 403 : 404,
+      });
+    }
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("collections/[id]/ships/[shipId] error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
-  return NextResponse.json(result);
 }

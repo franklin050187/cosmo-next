@@ -6,19 +6,24 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const collectionId = parseInt(id, 10);
-  if (isNaN(collectionId)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
-  }
+  try {
+    const { id } = await params;
+    const collectionId = parseInt(id, 10);
+    if (isNaN(collectionId)) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
 
-  const { getCollection } = await import("@/lib/db");
-  const col = await getCollection(collectionId);
-  if (!col) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+    const { getCollection } = await import("@/lib/db");
+    const col = await getCollection(collectionId);
+    if (!col) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-  return NextResponse.json(col);
+    return NextResponse.json(col);
+  } catch (err) {
+    console.error("collections/[id] GET error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
+  }
 }
 
 export async function PUT(
@@ -47,16 +52,21 @@ export async function PUT(
     }
   }
 
-  const { updateCollection } = await import("@/lib/db");
-  const result = await updateCollection(collectionId, payload.user.username, {
-    title: body.title,
-    description: body.description,
-  });
+  try {
+    const { updateCollection } = await import("@/lib/db");
+    const result = await updateCollection(collectionId, payload.user.username, {
+      title: body.title,
+      description: body.description,
+    });
 
-  if ("error" in result) {
-    return NextResponse.json(result, { status: result.error === "not the owner" ? 403 : 404 });
+    if ("error" in result) {
+      return NextResponse.json(result, { status: result.error === "not the owner" ? 403 : 404 });
+    }
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("collections/[id] PUT error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
-  return NextResponse.json(result);
 }
 
 export async function DELETE(
@@ -74,11 +84,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const { deleteCollection } = await import("@/lib/db");
-  const result = await deleteCollection(collectionId, payload.user.username);
+  try {
+    const { deleteCollection } = await import("@/lib/db");
+    const result = await deleteCollection(collectionId, payload.user.username);
 
-  if ("error" in result) {
-    return NextResponse.json(result, { status: result.error === "not the owner" ? 403 : 404 });
+    if ("error" in result) {
+      return NextResponse.json(result, { status: result.error === "not the owner" ? 403 : 404 });
+    }
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("collections/[id] DELETE error:", err);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
-  return NextResponse.json(result);
 }

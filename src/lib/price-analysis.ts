@@ -1,5 +1,21 @@
 import { partsResources, lookupResourcePrice, lookupResourceStackSize } from "./price-data";
-import type { DecodedShip } from "@/hooks/useShipDecode";
+
+interface DecodedShip {
+  Parts: {
+    ID: string;
+    Location: [number, number];
+    Rotation: number;
+    FlipX?: number;
+  }[];
+  Doors?: { ID: string }[];
+  FlightDirection: number;
+  PartUIToggleStates?: Array<{
+    Key: [{ ID: string; Location: [number, number] }, string];
+    Value: number;
+  }>;
+  NewFlexResourceGridTypes?: Array<{ Value: string }>;
+  [key: string]: unknown;
+}
 
 const catWeapons = new Set([
   "cosmoteer.cannon_deck", "cosmoteer.cannon_large", "cosmoteer.cannon_med",
