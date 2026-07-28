@@ -26,13 +26,13 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
   const [totalResults, setTotalResults] = useState(initialTotalCount);
   const isInitialMount = useRef(true);
 
-  const fetchShips = useCallback(async (queryString: string, pageNum: number) => {
+  const fetchShips = useCallback(async (queryString: string, pageNum: number, signal?: AbortSignal) => {
     try {
       const params = new URLSearchParams(queryString);
       params.set("page", pageNum.toString());
       if (!params.has("order")) params.set("order", "new");
 
-      const res = await fetch(`/api/ship/search?${params.toString()}`);
+      const res = await fetch(`/api/ship/search?${params.toString()}`, { signal });
       if (res.ok) {
         const data = await res.json();
         setShips(data.data ?? []);
@@ -40,6 +40,7 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
         setTotalResults(data.total_count ?? data.data?.length ?? 0);
       }
     } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
       console.error("Failed to fetch ships:", err);
     } finally {
       setLoading(false);
@@ -51,8 +52,10 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
       isInitialMount.current = false;
       return;
     }
+    const abortController = new AbortController();
     setLoading(true);
-    fetchShips(toQueryString(), filters.page);
+    fetchShips(toQueryString(), filters.page, abortController.signal);
+    return () => abortController.abort();
   }, [filters, fetchShips, toQueryString]);
 
   const handleQueryChange = useCallback((q: string) => {

@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About - CosmoShip",
+  description: "Learn about CosmoShip, the community ship library for Cosmoteer: Starship Architect & Commander.",
+};
+
 export default function AboutPage() {
   return (
     <div>

@@ -17,12 +17,7 @@ export async function downloadShip(shipId: number, shipName: string) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  } catch {
-    const a = document.createElement("a");
-    a.href = `/api/ship/${shipId}`;
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  } catch (err) {
+    console.error("Download failed (fallback unavailable):", err);
   }
 }

@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { searchFromQueryString } from "@/lib/db";
 import HomeContent from "@/components/HomeContent";
+
+export const metadata: Metadata = {
+  title: "CosmoShip : Cosmoteer Ship Library",
+  description:
+    "Browse, search, and download community ship designs for Cosmoteer: Starship Architect & Commander.",
+};
 
 export default async function HomePage({
   searchParams,

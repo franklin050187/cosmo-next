@@ -708,15 +708,18 @@ export class Ship {
     }
 
     const length = ((out[0] << 24) | (out[1] << 16) | (out[2] << 8) | out[3]) >>> 0;
-    console.log('[cosmoShip] raw length-header bytes:', Array.from(out.slice(0, 4)),
-      '-> length =', length);
-    console.log('[cosmoShip] first 16 extracted bytes (incl. header):',
-      bytesToHexUpper(out.slice(0, 16)));
+    if (length > out.length - 4) {
+      throw new Error(`readBytes: declared length ${length} exceeds buffer size ${out.length - 4}`);
+    }
     return out.slice(4, 4 + length);
   }
 
   setByte(offset, byte) {
-    const { data } = this.imageData;
+    const { data, width, height } = this.imageData;
+    const maxBytes = Math.floor((width * height * 3) / 8);
+    if (offset < 0 || offset >= maxBytes) {
+      throw new Error(`setByte: offset ${offset} out of bounds (max ${maxBytes})`);
+    }
     for (let bitsRight = 0; bitsRight < 8; bitsRight++) {
       const imageOffset = offset * 8 + bitsRight;
       const rgb = imageOffset % 3;
@@ -729,6 +732,11 @@ export class Ship {
 
   writeBytes(bytes) {
     const length = bytes.length;
+    const { width, height } = this.imageData;
+    const maxBytes = Math.floor((width * height * 3) / 8);
+    if (4 + length > maxBytes) {
+      throw new Error(`writeBytes: ${4 + length} bytes exceeds capacity ${maxBytes}`);
+    }
     const full = new Uint8Array(4 + bytes.length);
     full[0] = (length >>> 24) & 0xff;
     full[1] = (length >>> 16) & 0xff;
