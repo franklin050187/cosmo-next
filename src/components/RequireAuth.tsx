@@ -1,29 +1,63 @@
 "use client";
 
-import { useSyncExternalStore, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { isTokenExpired } from "@/lib/auth";
 
-function subscribeToAuth(callback: () => void) {
-  window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
+function getToken(): string | null {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token || isTokenExpired(token)) {
+      localStorage.removeItem("token");
+      return null;
+    }
+    return token;
+  } catch {
+    return null;
+  }
 }
-const getServerSnapshot = () => null;
-const getClientSnapshot = () => {
-  const token = localStorage.getItem("token");
-  if (!token || isTokenExpired(token)) {
-    localStorage.removeItem("token");
+
+async function verifyOnServer(token: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/auth/verify", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.valid === true;
+  } catch {
     return false;
   }
-  return true;
-};
+}
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
-  const authorized = useSyncExternalStore(
-    useCallback(subscribeToAuth, []),
-    getClientSnapshot,
-    getServerSnapshot
-  );
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const check = async () => {
+      const token = getToken();
+      if (!token) {
+        if (active) setAuthorized(false);
+        return;
+      }
+      const valid = await verifyOnServer(token);
+      if (active) setAuthorized(valid);
+    };
+
+    check();
+
+    const handler = () => {
+      setAuthorized(null);
+      check();
+    };
+    window.addEventListener("storage", handler);
+    return () => {
+      active = false;
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
 
   if (authorized === null) {
     return (
