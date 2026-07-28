@@ -31,10 +31,8 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: "kiter", label: "Kiter" },
       { value: "diagonal", label: "Diagonal" },
       { value: "avoider", label: "Avoider" },
-      { value: "mixed_weapons", label: "Mixed Weapons" },
       { value: "painted", label: "Painted" },
       { value: "splitter", label: "Splitter" },
-      { value: "utility_weapons", label: "Utility Weapons" },
       { value: "rammer", label: "Rammer" },
       { value: "orbiter", label: "Orbiter" },
       { value: "scout/racer", label: "Scout/Racer" },
@@ -43,6 +41,7 @@ export const TAG_CATEGORIES: TagCategory[] = [
       { value: "sundiver", label: "Sundiver" },
       { value: "cargo_ship", label: "Cargo Ship" },
       { value: "spinner", label: "Spinner" },
+      { value: "module", label: "Module" },
     ],
   },
   {

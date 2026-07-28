@@ -6,6 +6,7 @@ import Link from "next/link";
 import RequireAuth from "@/components/RequireAuth";
 import { type ShipRow } from "@/lib/types";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import { trackEvent } from "@/lib/analytics-client";
 
 interface Collection {
   id: number;
@@ -76,6 +77,7 @@ function EditCollectionContent() {
       if (data.error) {
         setError(data.error);
       } else {
+        trackEvent("collection_edit");
         router.push(`/collections/${collection.id}`);
       }
     } catch {
@@ -175,6 +177,7 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
         },
         body: JSON.stringify({ shipId }),
       });
+      trackEvent("collection_ship_add");
       setAdded(new Set([...added, shipId]));
     } catch {
     } finally {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import RequireAuth from "@/components/RequireAuth";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import { trackEvent } from "@/lib/analytics-client";
 
 function NewCollectionContent() {
   const router = useRouter();
@@ -34,6 +35,7 @@ function NewCollectionContent() {
       });
       const data = await res.json();
       if (data.id) {
+        trackEvent("collection_create");
         router.push(`/collections/${data.id}`);
       } else {
         setError(data.error ?? "Failed to create");

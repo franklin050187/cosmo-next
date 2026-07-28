@@ -4,6 +4,7 @@ import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <Header />
         </Suspense>
+        <AnalyticsTracker />
         <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 pt-[72px] pb-20">
           {children}
         </main>

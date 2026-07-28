@@ -18,6 +18,7 @@ const ShipPriceAnalysis = dynamic(
   { ssr: false }
 );
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
+import { isTokenExpired } from "@/lib/auth";
 
 interface Ship {
   id: number;
@@ -67,7 +68,7 @@ export default function ShipDetailPage() {
           .catch(() => {});
 
         const token = localStorage.getItem("token");
-        if (token) {
+        if (token && !isTokenExpired(token)) {
           setIsLoggedIn(true);
           try {
             const payload = JSON.parse(atob(token.split(".")[1]));
@@ -75,6 +76,8 @@ export default function ShipDetailPage() {
               setIsOwner(true);
             }
           } catch {}
+        } else if (token) {
+          localStorage.removeItem("token");
         }
       } catch {
         setError("Ship not found");

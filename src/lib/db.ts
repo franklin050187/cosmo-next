@@ -28,12 +28,12 @@ async function query(text: string, params?: unknown[]) {
   }
 }
 
-async function fetchAll(text: string, params?: unknown[]) {
+export async function fetchAll(text: string, params?: unknown[]) {
   const { rows } = await query(text, params);
   return rows ?? [];
 }
 
-async function fetchOne(text: string, params?: unknown[]) {
+export async function fetchOne(text: string, params?: unknown[]) {
   const rows = await fetchAll(text, params);
   return rows[0] ?? null;
 }

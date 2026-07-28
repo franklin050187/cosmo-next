@@ -24,7 +24,7 @@ export default function FilterDrawer({
   resultCount,
 }: FilterDrawerProps) {
   useEffect(() => {
-    if (open) {
+    if (open && window.innerWidth < 1024) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";

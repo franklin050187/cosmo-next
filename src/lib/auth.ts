@@ -6,7 +6,7 @@ function getJwtSecret(): string {
   return secret;
 }
 
-const TOKEN_EXPIRY = "24h";
+const TOKEN_EXPIRY = "30d";
 
 export interface UserPayload {
   id: string;
@@ -28,6 +28,15 @@ export function generateToken(): string {
 
 export function generateUserToken(user: UserPayload): string {
   return jwt.sign({ user }, getJwtSecret(), { expiresIn: TOKEN_EXPIRY });
+}
+
+export function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
 }
 
 export function verifyToken(token: string): TokenPayload {

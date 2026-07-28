@@ -2,10 +2,18 @@
 
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
+import { isTokenExpired } from "@/lib/auth";
 
 const emptySubscribe = () => () => {};
 const getServerSnapshot = () => null;
-const getClientSnapshot = () => !!localStorage.getItem("token");
+const getClientSnapshot = () => {
+  const token = localStorage.getItem("token");
+  if (!token || isTokenExpired(token)) {
+    localStorage.removeItem("token");
+    return false;
+  }
+  return true;
+};
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
   const authorized = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);

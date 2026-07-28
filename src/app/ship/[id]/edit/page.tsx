@@ -118,66 +118,72 @@ export default function EditShipPage() {
       </h1>
 
       <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
-        <div className="mb-4">
-          <img src={ship.data} alt={ship.ship_name} className="max-w-full h-auto mb-4" />
-        </div>
+        <div className="md:grid md:grid-cols-2 md:gap-6">
+          {/* Left: preview + metadata */}
+          <div className="space-y-4">
+            <div>
+              <img src={ship.data} alt={ship.ship_name} className="max-w-full h-auto max-sm:max-h-48 max-sm:object-contain" />
+            </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-blue-200 mb-1">Ship Name</label>
-            <input
-              type="text"
-              value={shipName}
-              onChange={(e) => setShipName(e.target.value)}
-              className="w-full p-2 bg-[#021526] border border-gray-400 rounded text-white"
-            />
+            <div>
+              <label className="block text-blue-200 mb-1">Author</label>
+              <p className="text-white">{ship.author}</p>
+            </div>
+
+            <div>
+              <label className="block text-blue-200 mb-1">Price</label>
+              <p className="text-[#0AD448]">{ship.price}₡</p>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-blue-200 mb-1">Author</label>
-            <p className="text-white">{ship.author}</p>
-          </div>
+          {/* Right: editable fields */}
+          <div className="md:sticky md:top-24 space-y-4">
+            <div>
+              <label className="block text-blue-200 mb-1">Ship Name</label>
+              <input
+                type="text"
+                value={shipName}
+                onChange={(e) => setShipName(e.target.value)}
+                className="w-full p-2 bg-[#021526] border border-gray-400 rounded text-white"
+              />
+            </div>
 
-          <div>
-            <label className="block text-blue-200 mb-1">Price</label>
-            <p className="text-[#0AD448]">{ship.price}₡</p>
-          </div>
+            <div>
+              <label className="block text-blue-200 mb-1">Tags</label>
+              {autoTags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {autoTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-block bg-[#00305e] text-white/70 text-xs px-2 py-1 rounded"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <UserTagEditor value={userTags} onChange={setUserTags} brand={brand} onBrandChange={setBrand} />
+            </div>
 
-          <div>
-            <label className="block text-blue-200 mb-1">Description</label>
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-              rows={6}
-            />
-          </div>
+            <div>
+              <label className="block text-blue-200 mb-1">Description</label>
+              <RichTextEditor
+                value={description}
+                onChange={setDescription}
+                rows={6}
+              />
+            </div>
 
-          <div>
-            <label className="block text-blue-200 mb-1">Tags</label>
-            {autoTags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-3">
-                {autoTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-block bg-[#00305e] text-white/70 text-xs px-2 py-1 rounded"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <UserTagEditor value={userTags} onChange={setUserTags} brand={brand} onBrandChange={setBrand} />
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-            <AddToCollectionButton shipId={ship.id} />
+            <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <AddToCollectionButton shipId={ship.id} />
+            </div>
           </div>
         </div>
       </div>

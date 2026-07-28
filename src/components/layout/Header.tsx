@@ -41,6 +41,7 @@ export default function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -60,7 +61,13 @@ export default function Header() {
     if (stored) {
       try {
         const payload = JSON.parse(atob(stored.split(".")[1]));
-        if (payload.user) setUser(payload.user); // eslint-disable-line react-hooks/set-state-in-effect
+        if (payload.user) {
+          setUser(payload.user); // eslint-disable-line react-hooks/set-state-in-effect
+          fetch("/api/auth/is-admin", { headers: { authorization: `Bearer ${stored}` } })
+            .then((r) => r.json())
+            .then((d) => setIsAdmin(d.isAdmin))
+            .catch(() => setIsAdmin(false));
+        }
       } catch {
         localStorage.removeItem("token");
       }
@@ -163,6 +170,15 @@ export default function Header() {
                         {link.label}
                       </Link>
                     ))}
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="block px-4 py-2 text-sm text-amber-400 hover:text-amber-300 hover:bg-white/5 transition-colors"
+                      >
+                        Analytics
+                      </Link>
+                    )}
                     <div className="border-t border-[#1C598C]/30 my-1" />
                     <button
                       onClick={handleLogout}
@@ -247,6 +263,15 @@ export default function Header() {
                   )}
                   <span className="text-sm text-blue-200">{user.username}</span>
                 </div>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-3 py-2.5 text-sm text-amber-400 hover:text-amber-300 hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    Analytics
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"

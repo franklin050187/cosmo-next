@@ -112,7 +112,7 @@ export default function UploadPanel() {
       setUploadedShipId(url.shipId?.shipId ?? null);
     } catch (err) {
       console.error("Upload error:", err);
-      setError("Upload failed");
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -139,129 +139,137 @@ export default function UploadPanel() {
         <>
           <h2 className="text-white text-xl mb-4">Select a ship file</h2>
 
-          <div className="mb-4">
-            <label
-              className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[#1C598C] rounded-md bg-[#021526]/80 cursor-pointer hover:border-cyan-400/50 hover:bg-[#021526] transition-colors"
-            >
-              <span className="text-blue-200 text-lg mb-2">
-                {file ? file.name : "Click to select a ship PNG"}
-              </span>
-              <span className="text-gray-500 text-sm">
-                Max 8MB, .png only
-              </span>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".png"
-                onChange={handleFileChange}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
+          <div className={file ? "md:grid md:grid-cols-2 md:gap-6" : ""}>
+            {/* Left column: file picker, preview, price, duplicates */}
+            <div>
+              <div className="mb-4">
+                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[#1C598C] rounded-md bg-[#021526]/80 cursor-pointer hover:border-cyan-400/50 hover:bg-[#021526] transition-colors">
+                  <span className="text-blue-200 text-lg mb-2">
+                    {file ? file.name : "Click to select a ship PNG"}
+                  </span>
+                  <span className="text-gray-500 text-sm">
+                    Max 8MB, .png only
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".png"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+
+              {preview && (
+                <div className="mb-4">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="max-w-full h-auto max-sm:max-h-48 max-sm:object-contain"
+                  />
+                </div>
+              )}
+
+              {decoding && (
+                <p className="text-blue-200 mb-4">Decoding ship data...</p>
+              )}
+
+              {priceResult && (
+                <div className="mb-4 space-y-2 p-3 border border-[#1C598C] rounded">
+                  <p className="text-white">
+                    <span className="text-blue-200">Author:</span>{" "}
+                    {priceResult.author}
+                  </p>
+                  <p className="text-[#0AD448]">
+                    <span className="text-blue-200">Price:</span>{" "}
+                    {priceResult.price}₡
+                  </p>
+                  <p className="text-white">
+                    <span className="text-blue-200">Crew:</span>{" "}
+                    {priceResult.crew}
+                  </p>
+                  <p className="text-white">
+                    <span className="text-blue-200">Tags:</span>{" "}
+                    {priceResult.tags.length > 0
+                      ? priceResult.tags.join(", ")
+                      : "None"}
+                  </p>
+                </div>
+              )}
+
+              {duplicates.length > 0 && (
+                <div className="mb-4 p-3 border border-yellow-600 bg-yellow-900/20 rounded">
+                  <p className="text-yellow-400 text-sm font-medium mb-1">
+                    This ship already exists in the library:
+                  </p>
+                  {duplicates.map((d) => (
+                    <p key={d.id} className="text-yellow-200 text-sm">
+                      <a href={`/ship/${d.id}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-100">
+                        {d.ship_name?.replace(".ship.png", "")}
+                      </a>
+                      {" "}by {d.author}
+                    </p>
+                  ))}
+                  <label className="flex items-center gap-2 mt-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={ackDuplicate}
+                      onChange={(e) => setAckDuplicate(e.target.checked)}
+                      className="w-4 h-4 rounded border-yellow-600 bg-[#021526] text-yellow-400 focus:ring-yellow-500"
+                    />
+                    <span className="text-yellow-300 text-sm">
+                      I understand this is a duplicate and still want to upload
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Right column: tags, description, buttons */}
+            {file && (
+              <div className="md:sticky md:top-24 space-y-4">
+                {priceResult && (
+                  <div>
+                    <UserTagEditor value={userTags} onChange={setUserTags} brand={brand} onBrandChange={setBrand} />
+                  </div>
+                )}
+
+                {priceResult && (
+                  <div>
+                    <label className="block text-blue-200 mb-1">Description</label>
+                    <RichTextEditor
+                      value={description}
+                      onChange={setDescription}
+                      placeholder="Describe your ship design..."
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                {error && <p className="text-red-400">{error}</p>}
+
+                {priceResult && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleUpload}
+                      disabled={uploading || (duplicates.length > 0 && !ackDuplicate)}
+                      className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {uploading ? "Uploading..." : duplicates.length > 0 ? "Upload Anyway" : "Upload to Library"}
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      disabled={uploading}
+                      className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {preview && (
-            <div className="mb-4">
-              <img
-                src={preview}
-                alt="Preview"
-                className="max-w-full h-auto"
-              />
-            </div>
-          )}
-
-          {decoding && (
-            <p className="text-blue-200 mb-4">Decoding ship data...</p>
-          )}
-
-          {priceResult && (
-            <div className="mb-4 space-y-2 p-3 border border-[#1C598C] rounded">
-              <p className="text-white">
-                <span className="text-blue-200">Author:</span>{" "}
-                {priceResult.author}
-              </p>
-              <p className="text-[#0AD448]">
-                <span className="text-blue-200">Price:</span>{" "}
-                {priceResult.price}₡
-              </p>
-              <p className="text-white">
-                <span className="text-blue-200">Crew:</span>{" "}
-                {priceResult.crew}
-              </p>
-              <p className="text-white">
-                <span className="text-blue-200">Tags:</span>{" "}
-                {priceResult.tags.length > 0
-                  ? priceResult.tags.join(", ")
-                  : "None"}
-              </p>
-            </div>
-          )}
-
-          {duplicates.length > 0 && (
-            <div className="mb-4 p-3 border border-yellow-600 bg-yellow-900/20 rounded">
-              <p className="text-yellow-400 text-sm font-medium mb-1">
-                This ship already exists in the library:
-              </p>
-              {duplicates.map((d) => (
-                <p key={d.id} className="text-yellow-200 text-sm">
-                  <a href={`/ship/${d.id}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-100">
-                    {d.ship_name?.replace(".ship.png", "")}
-                  </a>
-                  {" "}by {d.author}
-                </p>
-              ))}
-              <label className="flex items-center gap-2 mt-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={ackDuplicate}
-                  onChange={(e) => setAckDuplicate(e.target.checked)}
-                  className="w-4 h-4 rounded border-yellow-600 bg-[#021526] text-yellow-400 focus:ring-yellow-500"
-                />
-                <span className="text-yellow-300 text-sm">
-                  I understand this is a duplicate and still want to upload
-                </span>
-              </label>
-            </div>
-          )}
-
-          {priceResult && (
-            <div className="mb-4">
-              <label className="block text-blue-200 mb-1">Description</label>
-              <RichTextEditor
-                value={description}
-                onChange={setDescription}
-                placeholder="Describe your ship design..."
-                rows={4}
-              />
-            </div>
-          )}
-
-          {priceResult && (
-            <div className="mb-4">
-              <UserTagEditor value={userTags} onChange={setUserTags} brand={brand} onBrandChange={setBrand} />
-            </div>
-          )}
-
-          {error && <p className="text-red-400 mb-4">{error}</p>}
-
-          {priceResult && (
-            <div className="flex gap-2">
-              <button
-                onClick={handleUpload}
-                disabled={uploading || (duplicates.length > 0 && !ackDuplicate)}
-                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? "Uploading..." : duplicates.length > 0 ? "Upload Anyway" : "Upload to Library"}
-              </button>
-              <button
-                onClick={handleReset}
-                disabled={uploading}
-                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
-              >
-                Reset
-              </button>
-            </div>
-          )}
         </>
       )}
 

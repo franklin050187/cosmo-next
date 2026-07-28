@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ShipGrid from "@/components/ship/ShipGrid";
 import { type ShipRow } from "@/lib/types";
+import { trackEvent } from "@/lib/analytics-client";
 
 interface Collection {
   id: number;
@@ -31,6 +32,7 @@ export default function CollectionDetailPage() {
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
         setCollection(data);
+        trackEvent("collection_view");
 
         const token = localStorage.getItem("token");
         if (token) {
@@ -65,6 +67,7 @@ export default function CollectionDetailPage() {
         ...collection,
         ships: collection.ships.filter((s) => s.id !== shipId),
       });
+      trackEvent("collection_ship_remove");
     } catch {
     } finally {
       setRemoving(null);
@@ -81,6 +84,7 @@ export default function CollectionDetailPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+      trackEvent("collection_delete");
       router.push("/my-collections");
     } catch {}
   };

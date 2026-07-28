@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { isTokenExpired } from "@/lib/auth";
 
 interface Collection {
   id: number;
@@ -39,6 +40,13 @@ export default function CollectionPicker({ shipId, children, className }: Props)
         const res = await fetch("/api/collections/mine", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!res.ok) {
+          if (isTokenExpired(token)) {
+            localStorage.removeItem("token");
+          }
+          if (active) setCollections([]);
+          return;
+        }
         const data = await res.json();
         if (active) setCollections(Array.isArray(data) ? data : []);
       } catch {

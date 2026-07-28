@@ -44,8 +44,14 @@ export const uploadRouter = {
         } catch {}
       }
 
+      if (!token || !payload?.user) {
+        throw new Error(
+          "You must be logged in to upload ships. Please log in and try again."
+        );
+      }
+
       return {
-        submittedBy: payload?.user?.username ?? "Guest",
+        submittedBy: payload.user.username,
         description,
         brand,
         userTags,

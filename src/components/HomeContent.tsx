@@ -65,7 +65,7 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
     <div className="flex flex-col lg:flex-row gap-6">
       {/* ── Desktop sidebar ──────────────────────────────── */}
       <aside className="hidden lg:block w-64 shrink-0">
-        <div className="sticky top-24">
+        <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
           <div className="bg-[#021526]/70 backdrop-blur border border-[#1C598C]/40 rounded-xl p-4">
             <h2 className="text-white font-semibold text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
               <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
