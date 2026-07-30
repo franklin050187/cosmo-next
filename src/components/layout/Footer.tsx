@@ -31,6 +31,14 @@ export default function Footer() {
               Issues
             </Link>
           </li>
+          <li>
+            <Link
+              href="/game"
+              className="text-white text-xs hover:border-b hover:border-white transition-colors"
+            >
+              About the Game
+            </Link>
+          </li>
         </ul>
       </div>
     </footer>
