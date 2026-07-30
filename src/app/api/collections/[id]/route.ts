@@ -41,11 +41,15 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
+  const cl = req.headers.get("content-length");
+  if (cl && parseInt(cl, 10) > 1_048_576) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
   const body = await req.json();
 
   if (process.env.NODE_ENV !== "development") {
     const turnstileToken = body["cf-turnstile-response"] || "";
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+    const ip = (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "").replace(/^::ffff:/, "");
     const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
     if (!turnstileOk) {
       return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });

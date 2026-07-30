@@ -27,6 +27,10 @@ export async function POST(req: Request) {
     if (!signature || typeof signature !== "string") {
       return NextResponse.json({ error: "signature required" }, { status: 400 });
     }
+    const cl = req.headers.get("content-length");
+    if (cl && parseInt(cl, 10) > 1_048_576) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
     const duplicates = await findDuplicateBySignature(signature);
     return NextResponse.json({ duplicates });
   } catch (err) {

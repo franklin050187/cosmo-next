@@ -63,7 +63,8 @@ export default function CollectionDetailPage() {
         ships: collection.ships.filter((s) => s.id !== shipId),
       });
       trackEvent("collection_ship_remove");
-    } catch {
+    } catch (e) {
+      console.error("Failed to remove ship from collection:", e);
     } finally {
       setRemoving(null);
     }
@@ -80,7 +81,7 @@ export default function CollectionDetailPage() {
       });
       trackEvent("collection_delete");
       router.push("/my-collections");
-    } catch {}
+    } catch (e) { console.error("Failed to delete collection:", e); }
   };
 
   const handleDownloadAll = async () => {
@@ -100,7 +101,7 @@ export default function CollectionDetailPage() {
             const blob = await res.blob();
             const name = ship.ship_name?.replace(".ship.png", "") || `ship-${ship.id}`;
             folder.file(`${name}.png`, blob);
-          } catch {}
+          } catch (e) { console.error("Failed to download ship image:", e); }
         })
       );
 

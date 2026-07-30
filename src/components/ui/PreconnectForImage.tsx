@@ -17,7 +17,7 @@ export default function PreconnectForImage({ src }: { src: string }) {
     document.head.appendChild(link);
 
     return () => {
-      document.head.removeChild(link);
+      if (document.head.contains(link)) document.head.removeChild(link);
     };
   }, [src]);
 

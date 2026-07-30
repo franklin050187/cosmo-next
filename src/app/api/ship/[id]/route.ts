@@ -42,6 +42,10 @@ export async function PUT(
   }
 
   try {
+    const cl = req.headers.get("content-length");
+    if (cl && parseInt(cl, 10) > 1_048_576) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
     const body = await req.json();
     const { getImageData: getShip } = await import("@/lib/db");
     const ship = await getShip(shipId);
@@ -102,7 +106,8 @@ export async function DELETE(
           const utapi = new UTApi();
           await utapi.deleteFiles(fileKey);
         }
-      } catch {
+      } catch (e) {
+        console.error("Failed to delete old file from UploadThing:", e);
         // best-effort — file may already be gone
       }
     }

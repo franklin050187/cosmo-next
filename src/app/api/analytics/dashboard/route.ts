@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   if (process.env.NODE_ENV !== "development") {
     const turnstileToken = getTurnstileTokenFromReq(req);
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+    const ip = (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "").replace(/^::ffff:/, "");
     const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
     if (!turnstileOk) {
       return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });

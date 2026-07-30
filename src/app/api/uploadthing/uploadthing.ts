@@ -20,7 +20,8 @@ function commonMiddleware({ req }: { req: Request }) {
   if (token) {
     try {
       payload = verifyToken(token);
-    } catch {
+    } catch (e) {
+      console.error("Invalid token in upload middleware:", e);
       // invalid token, continue as anonymous
     }
   }
@@ -36,7 +37,7 @@ function commonMiddleware({ req }: { req: Request }) {
       if (Array.isArray(parsed)) {
         userTags = parsed.filter((t: unknown) => typeof t === "string");
       }
-    } catch {}
+    } catch (e) { console.error("Failed to parse user tags:", e); }
   }
 
   return { token, payload, description, brand, userTags };
@@ -61,7 +62,7 @@ export const uploadRouter = {
       if (process.env.NODE_ENV !== "development") {
         const headers = req.headers;
         const turnstileToken = headers.get("x-turnstile-token") || "";
-        const ip = headers.get("x-forwarded-for") || headers.get("x-real-ip") || "";
+        const ip = (headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip") || "").replace(/^::ffff:/, "");
         const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
         if (!turnstileOk) {
           throw new Error("Turnstile verification failed. Please complete the captcha.");
@@ -175,7 +176,8 @@ export const uploadRouter = {
               const utapi = new UTApi();
               await utapi.deleteFiles(fileKey);
             }
-          } catch {
+          } catch (e) {
+            console.error("Failed to delete old file from UploadThing:", e);
             // best-effort
           }
         }

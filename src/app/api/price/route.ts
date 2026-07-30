@@ -9,6 +9,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const cl = req.headers.get("content-length");
+    if (cl && parseInt(cl, 10) > 1_048_576) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
     const body = await req.json();
     const result = calculateShipPrice(body);
     return NextResponse.json(result);

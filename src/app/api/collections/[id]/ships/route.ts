@@ -16,6 +16,10 @@ export async function POST(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
+  const cl = req.headers.get("content-length");
+  if (cl && parseInt(cl, 10) > 1_048_576) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
   const body = await req.json();
   const shipId = body.shipId;
   if (typeof shipId !== "number") {

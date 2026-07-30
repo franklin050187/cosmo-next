@@ -7,6 +7,10 @@ export async function POST(req: NextRequest) {
     let body: Record<string, unknown>;
     const ct = req.headers.get("content-type") || "";
     if (ct.includes("application/json")) {
+      const cl = req.headers.get("content-length");
+      if (cl && parseInt(cl, 10) > 1_048_576) {
+        return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+      }
       body = await req.json();
     } else {
       return NextResponse.json({ error: "unsupported content-type" }, { status: 400 });

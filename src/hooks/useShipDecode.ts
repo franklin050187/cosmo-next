@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Ship } from "@/lib/cosmoShip";
 
 export interface DecodedShip {
@@ -28,6 +28,15 @@ export function useShipDecode(imageUrl: string) {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const urlRef = useRef(imageUrl);
+
+  useEffect(() => {
+    if (imageUrl !== urlRef.current) {
+      urlRef.current = imageUrl;
+      setDecoded(cache.get(imageUrl) ?? null);
+      setError(null);
+    }
+  }, [imageUrl]);
 
   useEffect(() => {
     if (decoded || error) return;

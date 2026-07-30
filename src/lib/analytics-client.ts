@@ -22,7 +22,7 @@ export function trackEvent(
         headers: { "Content-Type": "application/json" },
         body: payload,
         keepalive: true,
-      }).catch(() => {});
+      }).catch((e) => console.error("Analytics fetch failed:", e));
     }
-  } catch {}
+  } catch (e) { console.error("Analytics sendBeacon failed:", e); }
 }

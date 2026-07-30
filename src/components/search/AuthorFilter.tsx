@@ -19,7 +19,7 @@ export default function AuthorFilter({ value, onChange }: AuthorFilterProps) {
   useEffect(() => { setInput(value); }, [value]);
 
   useEffect(() => {
-    fetch("/api/ship/authors").then(r => r.json()).then((d: AuthorOption[]) => setOptions(d)).catch(() => {});
+    fetch("/api/ship/authors").then(r => r.json()).then((d: AuthorOption[]) => setOptions(d)).catch((e) => console.error("Failed to fetch authors:", e));
   }, []);
 
   const filtered = input

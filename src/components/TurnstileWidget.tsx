@@ -71,7 +71,7 @@ const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
         if ((window as any).turnstile && widgetIdRef.current) {
           try {
             (window as any).turnstile.remove(widgetIdRef.current);
-          } catch {}
+          } catch (e) { console.error("Failed to remove Turnstile widget:", e); }
           widgetIdRef.current = undefined;
         }
       };

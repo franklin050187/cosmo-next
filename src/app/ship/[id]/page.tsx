@@ -60,7 +60,7 @@ export default function ShipDetailPage() {
         fetch(`/api/collections?shipId=${params.id}`)
           .then((r) => r.json())
           .then((d) => { if (active) setCollections(d.data ?? []); })
-          .catch(() => {});
+          .catch((e) => console.error("Failed to fetch collections:", e));
 
         if (user?.username === data.submitted_by) {
           setIsOwner(true);

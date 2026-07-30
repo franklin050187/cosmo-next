@@ -187,7 +187,8 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
       });
       trackEvent("collection_ship_add");
       setAdded(new Set([...added, shipId]));
-    } catch {
+    } catch (e) {
+      console.error("Failed to add ship to collection:", e);
     } finally {
       setAdding(null);
     }

@@ -97,11 +97,11 @@ export interface ShipRow {
 }
 
 export async function getImageData(shipId: number): Promise<ShipRow | null> {
-  return fetchOne("SELECT * FROM shipdb WHERE id = $1", [shipId]);
+  return fetchOne("SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = $1", [shipId]);
 }
 
 export async function getMyShips(user: string) {
-  const data = await fetchAll("SELECT * FROM shipdb WHERE submitted_by = $1", [user]);
+  const data = await fetchAll("SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE submitted_by = $1", [user]);
   return { data, page: 1, max_page: 1 };
 }
 
@@ -217,7 +217,7 @@ export async function updateShip({
 
 export async function getMyFavorites(user: string) {
   const data = await fetchAll(
-    "SELECT * FROM shipdb WHERE id = ANY (SELECT UNNEST(favorite) FROM favoritedb WHERE name = $1)",
+    "SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = ANY (SELECT UNNEST(favorite) FROM favoritedb WHERE name = $1)",
     [user],
   );
   return { data, page: 1, max_page: 1 };
@@ -276,12 +276,12 @@ export async function createCollection(owner: string, title: string, description
 }
 
 export async function getCollection(id: number) {
-  const col = await fetchOne("SELECT * FROM collections WHERE id = $1", [id]);
+  const col = await fetchOne("SELECT id, owner, title, description, ships, created_at FROM collections WHERE id = $1", [id]);
   if (!col) return null;
   const ships =
     col.ships?.length > 0
       ? await fetchAll(
-          `SELECT * FROM shipdb WHERE id = ANY ($1::int[])`,
+          `SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = ANY ($1::int[])`,
           [col.ships],
         )
       : [];
@@ -432,7 +432,7 @@ export async function getSearchPlus(filters: SearchFilters) {
   const offset = page === -1 ? null : (page - 1) * PAGE_SIZE;
 
   args.push(limit);
-  let sql = `SELECT * FROM shipdb${where} ORDER BY ${order} LIMIT $${args.length}`;
+  let sql = `SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb${where} ORDER BY ${order} LIMIT $${args.length}`;
   if (offset != null) {
     args.push(offset);
     sql += ` OFFSET $${args.length}`;

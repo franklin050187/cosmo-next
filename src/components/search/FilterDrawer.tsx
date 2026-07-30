@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Filters } from "@/hooks/useFilters";
 import FilterBody from "./FilterBody";
 
@@ -34,13 +34,16 @@ export default function FilterDrawer({
     };
   }, [open]);
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) onClose();
+      if (e.key === "Escape" && open) onCloseRef.current();
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <>

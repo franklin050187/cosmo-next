@@ -1,7 +1,7 @@
 "use client";
 
 export async function downloadShip(shipId: number, shipName: string, imageUrl?: string) {
-  await fetch(`/api/ship/${shipId}/download`, { method: "POST" }).catch(() => {});
+  await fetch(`/api/ship/${shipId}/download`, { method: "POST" }).catch((e) => console.error("Download tracking failed:", e));
 
   try {
     const url = imageUrl ?? await (async () => {

@@ -24,7 +24,7 @@ export default function UserTagEditor({ value, onChange, brand, onBrandChange }:
         if (payload.user?.guild === "exl") {
           setIsExcelsiorMember(true);
         }
-      } catch {}
+      } catch (e) { console.error("Failed to decode token:", e); }
     }
   }, []);
 
