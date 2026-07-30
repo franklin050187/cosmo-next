@@ -1,3 +1,4 @@
+import Card from "@/components/ui/Card";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export default function AboutPage() {
         About CosmoShip
       </h1>
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-6">
+      <Card className="p-6">
         <p className="text-white mb-4">
           CosmoShip is a community library for sharing ship designs in{" "}
           <a
@@ -51,7 +52,7 @@ export default function AboutPage() {
           <li>Download and use community ships</li>
           <li>Add ships to your favorites collection</li>
         </ul>
-      </div>
+      </Card>
     </div>
   );
 }

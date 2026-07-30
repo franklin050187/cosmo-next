@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { centerOfMass, type ShipStats } from "@/lib/physics";
 import { partPhysics } from "@/lib/physics-data";
-import type { ShipStats } from "@/lib/physics";
 
 interface Part {
   ID: string;
@@ -222,7 +222,6 @@ export default function ShipReconstruction({ stats, parts }: Props) {
         (p) => p.ID === "cosmoteer.tractor_beam_emitter"
       );
       if (tractorParts.length > 0) {
-        const { centerOfMass } = await import("@/lib/physics");
         const tbCom = centerOfMass(tractorParts);
         const tbX = toX(tbCom.x);
         const tbY = toY(tbCom.y);

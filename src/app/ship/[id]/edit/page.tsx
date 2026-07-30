@@ -8,31 +8,17 @@ import UserTagEditor from "@/components/tags/UserTagEditor";
 import { extractUserTags } from "@/lib/user-tag-data";
 import ShipReplaceModal from "@/components/ship/ShipReplaceModal";
 import { uploadFiles } from "@/lib/upload-png";
-
-interface Ship {
-  id: number;
-  ship_name: string;
-  data: string;
-  author: string;
-  description: string;
-  price: number;
-  crew: number;
-  tags: string[];
-  submitted_by: string;
-  brand: string;
-}
-
-interface PriceResponse {
-  price: number;
-  crew: number;
-  author: string;
-  tags: string[];
-}
+import { Ship } from "@/lib/cosmoShip";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
+import { type ShipDetail, type PriceResponse } from "@/lib/types";
 
 export default function EditShipPage() {
   const params = useParams();
   const router = useRouter();
-  const [ship, setShip] = useState<Ship | null>(null);
+  const { token, user } = useAuth();
+  const [ship, setShip] = useState<ShipDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notOwner, setNotOwner] = useState(false);
@@ -52,7 +38,6 @@ export default function EditShipPage() {
 
   useEffect(() => {
     const fetchShip = async () => {
-      const token = localStorage.getItem("token");
       if (!token) {
         router.push("/");
         return;
@@ -65,13 +50,7 @@ export default function EditShipPage() {
         if (!res.ok) throw new Error("Ship not found");
         const data = await res.json();
 
-        let username: string | null = null;
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          username = payload.user?.username ?? null;
-        } catch {}
-
-        if (!username || data.submitted_by !== username) {
+        if (!user?.username || data.submitted_by !== user.username) {
           setNotOwner(true);
           return;
         }
@@ -91,10 +70,9 @@ export default function EditShipPage() {
     };
 
     fetchShip();
-  }, [params.id, router]);
+  }, [params.id, router, token, user?.username]);
 
   const handleSave = async () => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setSaving(true);
@@ -139,10 +117,6 @@ export default function EditShipPage() {
     reader.readAsDataURL(file);
 
     try {
-      const mod = (await import("@/lib/cosmoShip")) as Record<string, unknown>;
-      const Ship = mod.Ship as {
-        fromSource: (f: File) => Promise<{ data: unknown }>;
-      };
       const decoded = await Ship.fromSource(file);
       const { calculateShipPrice } = await import("@/lib/price");
       const result = calculateShipPrice(
@@ -162,7 +136,6 @@ export default function EditShipPage() {
   const handleReplaceConfirm = async () => {
     if (!ship || !replaceResult || !replaceFile) return;
 
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setReplacing(true);
@@ -216,7 +189,7 @@ export default function EditShipPage() {
         onChange={handleFileSelected}
       />
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+      <Card>
         <div className="md:grid md:grid-cols-2 md:gap-6">
           {/* Left: preview + metadata */}
           <div className="space-y-4">
@@ -274,30 +247,23 @@ export default function EditShipPage() {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 border border-gray-600 rounded text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
-              >
+              <Button variant="secondary" onClick={handleCancel}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
-              </button>
-              <button
-                onClick={handleReplaceShip}
-                className="px-4 py-2 border border-amber-500/50 rounded text-amber-300 hover:bg-amber-500/20 transition-colors"
-              >
+              </Button>
+              <Button variant="amber" onClick={handleReplaceShip}>
                 Replace Ship
-              </button>
+              </Button>
               <AddToCollectionButton shipId={ship.id} />
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {replaceModalOpen && replaceResult && (
         <ShipReplaceModal

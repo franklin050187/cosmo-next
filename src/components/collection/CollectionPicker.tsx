@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { isTokenExpired } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Collection {
   id: number;
@@ -19,6 +19,7 @@ interface Props {
 }
 
 export default function CollectionPicker({ shipId, children, className }: Props) {
+  const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,6 @@ export default function CollectionPicker({ shipId, children, className }: Props)
   const msgTimer = useRef<number | undefined>(undefined);
 
   const fetchCollections = useCallback(async (signal?: AbortSignal) => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setLoading(true);
@@ -41,9 +41,6 @@ export default function CollectionPicker({ shipId, children, className }: Props)
         signal,
       });
       if (!res.ok) {
-        if (isTokenExpired(token)) {
-          localStorage.removeItem("token");
-        }
         setCollections([]);
         return;
       }
@@ -55,7 +52,7 @@ export default function CollectionPicker({ shipId, children, className }: Props)
     } finally {
       setLoading(false);
     }
-  }, [shipId]);
+  }, [shipId, token]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,7 +85,6 @@ export default function CollectionPicker({ shipId, children, className }: Props)
   };
 
   const toggleShip = async (col: Collection) => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setToggling(col.id);

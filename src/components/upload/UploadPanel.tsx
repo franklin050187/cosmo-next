@@ -6,13 +6,11 @@ import AddToCollectionButton from "@/components/collection/AddToCollectionButton
 import UserTagEditor from "@/components/tags/UserTagEditor";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
-
-interface PriceResult {
-  price: number;
-  crew: number;
-  author: string;
-  tags: string[];
-}
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
+import { Ship } from "@/lib/cosmoShip";
+import { type PriceResponse } from "@/lib/types";
 
 interface DuplicateShip {
   id: number;
@@ -21,9 +19,10 @@ interface DuplicateShip {
 }
 
 export default function UploadPanel() {
+  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [priceResult, setPriceResult] = useState<PriceResult | null>(null);
+  const [priceResult, setPriceResult] = useState<PriceResponse | null>(null);
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<string | null>(null);
@@ -57,12 +56,6 @@ export default function UploadPanel() {
     reader.readAsDataURL(selected);
 
     try {
-      const mod = (await import("@/lib/cosmoShip")) as Record<string, unknown>;
-      const Ship = mod.Ship as {
-        fromSource: (
-          f: File
-        ) => Promise<{ data: unknown }>;
-      };
       const ship = await Ship.fromSource(selected);
       const decodedData = ship.data;
 
@@ -107,7 +100,6 @@ export default function UploadPanel() {
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
       const { uploadFiles } = await import("@/lib/upload-png");
       const [url] = await uploadFiles({
         files: [file],
@@ -144,7 +136,7 @@ export default function UploadPanel() {
   };
 
   return (
-    <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+    <Card>
       {!uploadResult && (
         <>
           <h2 className="text-white text-xl mb-4">Select a ship file</h2>
@@ -265,20 +257,18 @@ export default function UploadPanel() {
 
                 {priceResult && (
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={handleUpload}
                       disabled={uploading || (duplicates.length > 0 && !ackDuplicate)}
-                      className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {uploading ? "Uploading..." : duplicates.length > 0 ? "Upload Anyway" : "Upload to Library"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={handleReset}
                       disabled={uploading}
-                      className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
                     >
                       Reset
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -293,18 +283,15 @@ export default function UploadPanel() {
             Ship uploaded successfully!
           </p>
           <div className="flex gap-2 justify-center">
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
-            >
+            <Button onClick={handleReset}>
               Upload Another
-            </button>
+            </Button>
             {uploadedShipId && (
               <AddToCollectionButton shipId={uploadedShipId} />
             )}
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

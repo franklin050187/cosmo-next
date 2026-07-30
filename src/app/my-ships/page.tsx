@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 import ShipGrid from "@/components/ship/ShipGrid";
 import RequireAuth from "@/components/RequireAuth";
-import { type ShipRow } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
+import { type ShipRow } from "@/lib/db";
 
 function MyShipsContent() {
+  const { token } = useAuth();
   const [ships, setShips] = useState<ShipRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMyShips = async () => {
-      const token = localStorage.getItem("token");
       if (!token) return;
 
       try {
@@ -30,7 +31,7 @@ function MyShipsContent() {
     };
 
     fetchMyShips();
-  }, []);
+  }, [token]);
 
   return (
     <>

@@ -4,24 +4,21 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import RequireAuth from "@/components/RequireAuth";
-import { type ShipRow } from "@/lib/types";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
+import { type ShipRow } from "@/lib/db";
+import { type CollectionDetail } from "@/lib/types";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { trackEvent } from "@/lib/analytics-client";
 
-interface Collection {
-  id: number;
-  owner: string;
-  title: string;
-  description: string;
-  ships: ShipRow[];
-}
-
 function EditCollectionContent() {
   const params = useParams();
   const router = useRouter();
-  const [collection, setCollection] = useState<Collection | null>(null);
+  const { token, user } = useAuth();
+  const [collection, setCollection] = useState<CollectionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -32,7 +29,6 @@ function EditCollectionContent() {
   useEffect(() => {
     let active = true;
 
-    const token = localStorage.getItem("token");
     if (!token) {
       router.push("/");
       return;
@@ -44,11 +40,7 @@ function EditCollectionContent() {
       .then((r) => r.json())
       .then((data) => {
         if (!active) return;
-        let isOwner = false;
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          isOwner = payload.user?.username === data.owner;
-        } catch {}
+        const isOwner = user?.username === data.owner;
 
         if (!isOwner) {
           router.push(`/collections/${params.id}`);
@@ -63,11 +55,10 @@ function EditCollectionContent() {
       .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
-  }, [params.id, router]);
+  }, [params.id, router, token, user?.username]);
 
   const handleSave = async () => {
     if (!title.trim() || !collection) return;
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     const turnstileToken = turnstileRef.current?.getToken();
@@ -112,7 +103,7 @@ function EditCollectionContent() {
         Edit Collection
       </h1>
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4 space-y-4">
+      <Card className="space-y-4">
         <div>
           <label className="block text-blue-200 mb-1">Title</label>
           <input
@@ -137,13 +128,12 @@ function EditCollectionContent() {
         <TurnstileWidget ref={turnstileRef} />
 
         <div className="flex gap-2">
-          <button
-            onClick={handleSave}
-            disabled={saving || !title.trim()}
-            className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
+        <Button
+          onClick={handleSave}
+          disabled={saving || !title.trim()}
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
           <Link
             href={`/collections/${collection.id}`}
             className="px-4 py-2 border border-[#1C598C] rounded text-blue-200 hover:text-white transition-colors"
@@ -151,7 +141,7 @@ function EditCollectionContent() {
             Cancel
           </Link>
         </div>
-      </div>
+      </Card>
 
       <div className="mt-8">
         <AddShipsSection collectionId={collection.id} existingShipIds={collection.ships.map((s) => s.id)} />
@@ -161,6 +151,7 @@ function EditCollectionContent() {
 }
 
 function AddShipsSection({ collectionId, existingShipIds }: { collectionId: number; existingShipIds: number[] }) {
+  const { token } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ShipRow[]>([]);
   const [searching, setSearching] = useState(false);
@@ -182,7 +173,6 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
   };
 
   const addShip = async (shipId: number) => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setAdding(shipId);
@@ -204,7 +194,7 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
   };
 
   return (
-    <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+    <Card>
       <h2 className="text-blue-200 text-sm mb-2">Add ships by name:</h2>
       <div className="flex gap-2 mb-3">
         <input
@@ -215,13 +205,13 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
           placeholder="Search ship name..."
           className="flex-1 p-2 bg-[#021526] border border-gray-400 rounded text-white text-sm"
         />
-        <button
-          onClick={search}
-          disabled={searching}
-          className="px-3 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors text-sm disabled:opacity-50"
-        >
-          {searching ? "..." : "Search"}
-        </button>
+            <Button
+              onClick={search}
+              disabled={searching}
+              size="sm"
+            >
+              {searching ? "..." : "Search"}
+            </Button>
       </div>
 
       {results.length > 0 && (
@@ -250,19 +240,20 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
                     by {ship.author}
                   </p>
                 </div>
-                <button
-                  onClick={() => addShip(ship.id)}
-                  disabled={alreadyIn || adding === ship.id}
-                  className="shrink-0 text-xs px-2.5 py-1.5 rounded border border-[#1C598C] text-cyan-400 hover:bg-cyan-400/20 transition-colors disabled:opacity-40 min-h-[32px]"
-                >
-                  {alreadyIn ? "✓ Added" : adding === ship.id ? "..." : "+ Add"}
-                </button>
+              <Button
+                onClick={() => addShip(ship.id)}
+                disabled={alreadyIn || adding === ship.id}
+                size="sm"
+                className="shrink-0 min-h-[32px]"
+              >
+                {alreadyIn ? "✓ Added" : adding === ship.id ? "..." : "+ Add"}
+              </Button>
               </div>
             );
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

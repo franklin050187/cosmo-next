@@ -1,3 +1,4 @@
+import Card from "@/components/ui/Card";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -33,7 +34,7 @@ export default function GamePage() {
         </a>
       </p>
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-6 space-y-6">
+      <Card className="p-6 space-y-6">
         <section>
           <h2 className="text-2xl text-white font-semibold mb-3">The Game</h2>
           <p className="text-white/80 leading-relaxed">
@@ -96,7 +97,7 @@ export default function GamePage() {
             Browse Community Ships
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

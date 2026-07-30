@@ -7,7 +7,7 @@ import FilterBody from "@/components/search/FilterBody";
 import ActiveFilters from "@/components/search/ActiveFilters";
 import ShipGrid from "@/components/ship/ShipGrid";
 import { useFilters } from "@/hooks/useFilters";
-import { type ShipRow } from "@/lib/types";
+import { type ShipRow } from "@/lib/db";
 
 const FilterDrawer = dynamic(() => import("@/components/search/FilterDrawer"), { ssr: false });
 

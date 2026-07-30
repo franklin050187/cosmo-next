@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Card from "@/components/ui/Card";
 import { useShipDecode } from "@/hooks/useShipDecode";
 import { calculateShipStats } from "@/lib/physics";
 import type { ShipStats as ShipStatsType } from "@/lib/physics";
@@ -57,27 +58,27 @@ export default function ShipStats({ imageUrl }: Props) {
 
   if (loading) {
     return (
-      <div className="mt-6 border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+      <Card className="mt-6">
         <div className="flex items-center gap-3">
           <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-blue-200">Analyzing ship...</p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (decodeError) {
     return (
-      <div className="mt-6 border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+      <Card className="mt-6">
         <p className="text-red-400">{decodeError}</p>
-      </div>
+      </Card>
     );
   }
 
   if (!cached) return null;
 
   return (
-    <div className="mt-6 border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+    <Card className="mt-6">
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-shrink-0 w-full max-w-[512px] flex items-start justify-center">
           <ShipReconstruction stats={cached.stats} parts={cached.parts} />
@@ -86,6 +87,6 @@ export default function ShipStats({ imageUrl }: Props) {
           <ShipStatsPanel stats={cached.stats} />
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

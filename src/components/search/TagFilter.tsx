@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useDropdown } from "@/hooks/useDropdown";
 
 interface TagOption { tag: string; count: number; }
 
@@ -14,39 +15,11 @@ interface TagFilterProps {
 export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps) {
   const [input, setInput] = useState("");
   const [options, setOptions] = useState<TagOption[]>([]);
-  const [showDD, setShowDD] = useState(false);
-  const [highlight, setHighlight] = useState(-1);
-  const [ddPos, setDdPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const { wrapRef, showDD, setShowDD, ddPos, highlight, setHighlight } = useDropdown();
 
   useEffect(() => {
     fetch("/api/ship/tags").then(r => r.json()).then((d: TagOption[]) => setOptions(d)).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setShowDD(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const updatePosition = useCallback(() => {
-    if (wrapRef.current) {
-      const r = wrapRef.current.getBoundingClientRect();
-      setDdPos({ top: r.bottom + 4, left: r.left, width: r.width });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showDD) {
-      updatePosition();
-      window.addEventListener("scroll", updatePosition, true);
-      window.addEventListener("resize", updatePosition);
-      return () => {
-        window.removeEventListener("scroll", updatePosition, true);
-        window.removeEventListener("resize", updatePosition);
-      };
-    }
-  }, [showDD, updatePosition]);
 
   const selected = new Set([...tagsOn, ...tagsOff]);
   const filtered = input
@@ -64,7 +37,7 @@ export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps)
     setInput("");
     setShowDD(false);
     setHighlight(-1);
-  }, [tagsOn, tagsOff, onChange]);
+  }, [tagsOn, tagsOff, onChange, setShowDD, setHighlight]);
 
   const remove = useCallback((tag: string) => {
     onChange(tagsOn.filter(t => t !== tag), tagsOff.filter(t => t !== tag));

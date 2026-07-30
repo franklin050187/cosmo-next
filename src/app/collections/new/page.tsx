@@ -6,9 +6,13 @@ import RequireAuth from "@/components/RequireAuth";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics-client";
 
 function NewCollectionContent() {
+  const { token } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -28,7 +32,6 @@ function NewCollectionContent() {
       return;
     }
 
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setSaving(true);
@@ -64,7 +67,7 @@ function NewCollectionContent() {
         New Collection
       </h1>
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4 space-y-4">
+      <Card className="space-y-4">
         <div>
           <label className="block text-blue-200 mb-1">Title</label>
           <input
@@ -90,14 +93,13 @@ function NewCollectionContent() {
 
         <TurnstileWidget ref={turnstileRef} />
 
-        <button
+        <Button
           onClick={handleCreate}
           disabled={saving || !title.trim()}
-          className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
         >
           {saving ? "Creating..." : "Create Collection"}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

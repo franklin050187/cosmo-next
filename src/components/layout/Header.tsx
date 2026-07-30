@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { isTokenExpired } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 interface User {
   username: string;
@@ -41,43 +41,22 @@ export default function Header() {
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const [user, setUser] = useState<User | null>(null);
+  const { user, token, logout } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const sessionCookie = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("__session="));
-    if (sessionCookie) {
-      const token = sessionCookie.split("=")[1];
-      if (token) {
-        localStorage.setItem("token", token);
-        document.cookie = "__session=; path=/; max-age=0";
-      }
-    }
+    if (!token) return;
+    fetch("/api/auth/is-admin", {
+      headers: { authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d: { isAdmin: boolean }) => setIsAdmin(d.isAdmin))
+      .catch(() => setIsAdmin(false));
+  }, [token]);
 
-    const stored = localStorage.getItem("token");
-    if (stored) {
-      if (isTokenExpired(stored)) {
-        localStorage.removeItem("token");
-      } else {
-        try {
-          const payload = JSON.parse(atob(stored.split(".")[1]));
-          if (payload.user) {
-            setUser(payload.user); // eslint-disable-line react-hooks/set-state-in-effect
-            fetch("/api/auth/is-admin", { headers: { authorization: `Bearer ${stored}` } })
-              .then((r) => r.json())
-              .then((d) => setIsAdmin(d.isAdmin))
-              .catch(() => setIsAdmin(false));
-          }
-        } catch {
-          localStorage.removeItem("token");
-        }
-      }
-    }
-
+  useEffect(() => {
     const error = new URLSearchParams(window.location.search).get("auth_error");
     if (error) {
       window.history.replaceState({}, "", window.location.pathname + window.location.hash);
@@ -116,8 +95,7 @@ export default function Header() {
   }, [userMenuOpen]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
+    logout();
     setUserMenuOpen(false);
     setMenuOpen(false);
     window.location.href = "/";

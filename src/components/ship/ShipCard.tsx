@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { type ShipRow } from "@/lib/types";
+import { type ShipRow } from "@/lib/db";
 import CollectionPicker from "@/components/collection/CollectionPicker";
 import { downloadShip } from "@/lib/download-ship";
 

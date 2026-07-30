@@ -5,8 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useShipDecode } from "@/hooks/useShipDecode";
+import Button from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
+import Card from "@/components/ui/Card";
 import PreconnectForImage from "@/components/ui/PreconnectForImage";
 import { formatDate } from "@/lib/format-date";
+import { type ShipDetail } from "@/lib/types";
 
 const ShipStats = dynamic(() => import("@/components/ship/ShipStats"), {
   ssr: false,
@@ -19,34 +23,17 @@ const ShipPriceAnalysis = dynamic(
   { ssr: false }
 );
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
-import { isTokenExpired } from "@/lib/auth";
 import { sanitizeHtml } from "@/lib/sanitize";
-
-interface Ship {
-  id: number;
-  ship_name: string;
-  data: string;
-  author: string;
-  description: string;
-  price: number;
-  crew: number;
-  tags: string[];
-  submitted_by: string;
-  brand: string;
-  downloads: number;
-  fav: number;
-  date: string;
-}
 
 export default function ShipDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [ship, setShip] = useState<Ship | null>(null);
+  const { token, user, isLoggedIn } = useAuth();
+  const [ship, setShip] = useState<ShipDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showJson, setShowJson] = useState(false);
   const [showPriceAnalysis, setShowPriceAnalysis] = useState(false);
@@ -74,17 +61,8 @@ export default function ShipDetailPage() {
           .then((d) => { if (active) setCollections(d.data ?? []); })
           .catch(() => {});
 
-        const token = localStorage.getItem("token");
-        if (token && !isTokenExpired(token)) {
-          setIsLoggedIn(true);
-          try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            if (payload.user?.username === data.submitted_by) {
-              setIsOwner(true);
-            }
-          } catch {}
-        } else if (token) {
-          localStorage.removeItem("token");
+        if (user?.username === data.submitted_by) {
+          setIsOwner(true);
         }
       } catch {
         if (active) setError("Ship not found");
@@ -95,10 +73,9 @@ export default function ShipDetailPage() {
 
     fetchShip();
     return () => { active = false; };
-  }, [params.id]);
+  }, [params.id, user?.username]);
 
   const handleFavorite = async () => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
@@ -113,7 +90,6 @@ export default function ShipDetailPage() {
   };
 
   const handleUnfavorite = async () => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
@@ -157,7 +133,6 @@ export default function ShipDetailPage() {
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this ship?")) return;
 
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
@@ -189,7 +164,7 @@ export default function ShipDetailPage() {
         {ship.ship_name.replace(".ship.png", "")}
       </h1>
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+      <Card>
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-shrink-0">
             <img
@@ -275,19 +250,17 @@ export default function ShipDetailPage() {
             <div className="flex gap-2 flex-wrap mb-3">
               {isLoggedIn ? (
                 isFavorited ? (
-                  <button
+                  <Button
                     onClick={handleUnfavorite}
-                    className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
                   >
                     ★ Unfavorite
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     onClick={handleFavorite}
-                    className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
                   >
                     ☆ Favorite
-                  </button>
+                  </Button>
                 )
               ) : (
                 <Link
@@ -299,12 +272,11 @@ export default function ShipDetailPage() {
                 </Link>
               )}
 
-              <button
+              <Button
                 onClick={handleDownload}
-                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
               >
                 ↓ Download
-              </button>
+              </Button>
 
               {isLoggedIn && <AddToCollectionButton shipId={ship.id} />}
             </div>
@@ -317,12 +289,9 @@ export default function ShipDetailPage() {
                 >
                   Edit
                 </Link>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 border border-[#8b0000] rounded bg-gradient-to-b from-[#8b0000]/25 to-[#5c0000]/25 text-red-400 hover:bg-red-400/20 hover:text-white transition-colors"
-                >
+                <Button variant="danger" onClick={handleDelete}>
                   Delete
-                </button>
+                </Button>
               </div>
             )}
 
@@ -348,13 +317,13 @@ export default function ShipDetailPage() {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {showStats && <ShipStats imageUrl={ship.data} />}
       {showPriceAnalysis && (
-        <div className="mt-6 border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+        <Card className="mt-6">
           <ShipPriceAnalysisWrapper imageUrl={ship.data} />
-        </div>
+        </Card>
       )}
       {showJson && <div className="mt-6"><ShipJson imageUrl={ship.data} /></div>}
     </div>

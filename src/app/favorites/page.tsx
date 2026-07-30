@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 import ShipGrid from "@/components/ship/ShipGrid";
 import RequireAuth from "@/components/RequireAuth";
-import { type ShipRow } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
+import { type ShipRow } from "@/lib/db";
 
 function FavoritesContent() {
+  const { token } = useAuth();
   const [ships, setShips] = useState<ShipRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchFavorites = async () => {
-      const token = localStorage.getItem("token");
       if (!token) return;
 
       try {
@@ -30,7 +31,7 @@ function FavoritesContent() {
     };
 
     fetchFavorites();
-  }, []);
+  }, [token]);
 
   return (
     <>

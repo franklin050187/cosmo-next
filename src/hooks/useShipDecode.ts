@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Ship } from "@/lib/cosmoShip";
 
 export interface DecodedShip {
   Parts: {
@@ -40,10 +41,6 @@ export function useShipDecode(imageUrl: string) {
         if (!res.ok) throw new Error("Failed to fetch ship image");
         const blob = await res.blob();
 
-        const mod = (await import("@/lib/cosmoShip")) as Record<string, unknown>;
-        const Ship = mod.Ship as {
-          fromSource: (f: Blob) => Promise<{ data: unknown }>;
-        };
         const ship = await Ship.fromSource(blob);
         const result = ship.data as DecodedShip;
 

@@ -1,3 +1,4 @@
+import Card from "@/components/ui/Card";
 import Link from "next/link";
 import { sanitizeHtml } from "@/lib/sanitize";
 
@@ -17,7 +18,7 @@ interface Props {
 
 export default function CollectionCard({ collection, onDelete }: Props) {
   return (
-    <div className="relative border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4 hover:border-cyan-400/40 transition-colors group">
+    <Card className="relative hover:border-cyan-400/40 transition-colors group">
       <Link
         href={`/collections/${collection.id}`}
         className="block"
@@ -46,6 +47,6 @@ export default function CollectionCard({ collection, onDelete }: Props) {
           </svg>
         </button>
       )}
-    </div>
+    </Card>
   );
 }

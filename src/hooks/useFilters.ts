@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 export interface Filters {
@@ -34,7 +34,7 @@ export function useFilters() {
     page: parseInt(searchParams.get("page") ?? "1", 10) || 1,
   }), [searchParams]);
 
-  const pushRef = useRef(0);
+  const pushRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const setFilter = useCallback((key: string, value: string | string[]) => {
     const next = new URLSearchParams(searchParams);
@@ -51,10 +51,14 @@ export function useFilters() {
     if (key !== "page") next.delete("page");
 
     clearTimeout(pushRef.current);
-    pushRef.current = window.setTimeout(() => {
+    pushRef.current = setTimeout(() => {
       router.push(`${pathname}?${next.toString()}`, { scroll: false });
-    }, 150) as unknown as number;
+    }, 150);
   }, [searchParams, router, pathname]);
+
+  useEffect(() => {
+    return () => clearTimeout(pushRef.current);
+  }, []);
 
   const setFilters = useCallback((entries: [string, string | string[]][]) => {
     const next = new URLSearchParams(searchParams);

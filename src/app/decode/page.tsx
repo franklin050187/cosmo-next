@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { Ship } from "@/lib/cosmoShip";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DecodePage() {
+  const { token } = useAuth();
   const [decodedData, setDecodedData] = useState<object | null>(null);
   const [priceResult, setPriceResult] = useState<{ price: number; crew: number; author: string; tags: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -15,9 +20,7 @@ export default function DecodePage() {
     setPriceResult(null);
 
     try {
-      const mod = await import("@/lib/cosmoShip") as Record<string, unknown>;
-      const Ship = mod.Ship as new (...args: unknown[]) => { data: unknown };
-      const ship = await (Ship as unknown as { fromSource: (f: File) => Promise<{ data: unknown }> }).fromSource(file);
+      const ship = await Ship.fromSource(file);
       setDecodedData(ship.data as object);
     } catch (err) {
       console.error("Decode error:", err);
@@ -29,7 +32,6 @@ export default function DecodePage() {
     if (!decodedData) return;
 
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch("/api/price", {
         method: "POST",
         headers: {
@@ -53,7 +55,7 @@ export default function DecodePage() {
         Decode Ship Blueprint
       </h1>
 
-      <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+      <Card>
         <input
           type="file"
           accept=".png"
@@ -84,14 +86,11 @@ export default function DecodePage() {
         {error && <p className="text-red-400 mb-4">{error}</p>}
 
         {decodedData && (
-          <button
-            onClick={handleCalculate}
-            className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
-          >
+          <Button onClick={handleCalculate}>
             Calculate Price
-          </button>
+          </Button>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

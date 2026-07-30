@@ -3,23 +3,16 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import RequireAuth from "@/components/RequireAuth";
+import { useAuth } from "@/hooks/useAuth";
 import CollectionGrid from "@/components/collection/CollectionGrid";
-
-interface CollectionSummary {
-  id: number;
-  owner: string;
-  title: string;
-  description: string;
-  ship_count: number | null;
-  created_at: string;
-}
+import { type CollectionSummary } from "@/lib/types";
 
 function MyCollectionsContent() {
+  const { token } = useAuth();
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCollections = () => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     fetch("/api/collections/mine", {
@@ -33,11 +26,10 @@ function MyCollectionsContent() {
 
   useEffect(() => {
     fetchCollections();
-  }, []);
+  }, [token]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this collection?")) return;
-    const token = localStorage.getItem("token");
     if (!token) return;
     await fetch(`/api/collections/${id}`, {
       method: "DELETE",

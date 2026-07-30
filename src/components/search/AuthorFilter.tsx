@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useDropdown } from "@/hooks/useDropdown";
 
 interface AuthorOption { author: string; count: number; }
 
@@ -13,42 +14,13 @@ interface AuthorFilterProps {
 export default function AuthorFilter({ value, onChange }: AuthorFilterProps) {
   const [input, setInput] = useState(value);
   const [options, setOptions] = useState<AuthorOption[]>([]);
-  const [showDD, setShowDD] = useState(false);
-  const [highlight, setHighlight] = useState(-1);
-  const [ddPos, setDdPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const { wrapRef, showDD, setShowDD, ddPos, highlight, setHighlight } = useDropdown();
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setInput(value); }, [value]);
 
   useEffect(() => {
     fetch("/api/ship/authors").then(r => r.json()).then((d: AuthorOption[]) => setOptions(d)).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setShowDD(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const updatePosition = useCallback(() => {
-    if (wrapRef.current) {
-      const r = wrapRef.current.getBoundingClientRect();
-      setDdPos({ top: r.bottom + 4, left: r.left, width: r.width });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showDD) {
-      updatePosition();
-      window.addEventListener("scroll", updatePosition, true);
-      window.addEventListener("resize", updatePosition);
-      return () => {
-        window.removeEventListener("scroll", updatePosition, true);
-        window.removeEventListener("resize", updatePosition);
-      };
-    }
-  }, [showDD, updatePosition]);
 
   const filtered = input
     ? options.filter(o => o.author.toLowerCase().includes(input.toLowerCase()))
@@ -58,7 +30,7 @@ export default function AuthorFilter({ value, onChange }: AuthorFilterProps) {
 
   const select = useCallback((a: string) => {
     setInput(a); onChange(a); setShowDD(false); setHighlight(-1);
-  }, [onChange]);
+  }, [onChange, setShowDD, setHighlight]);
 
   const onKey = (e: React.KeyboardEvent) => {
     if (!showDD) return;

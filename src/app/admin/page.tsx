@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DashboardData } from "@/lib/analytics-db";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminPage() {
+  const { token } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,6 @@ export default function AdminPage() {
     if (!turnstilePassed) return;
 
     const fetchData = async () => {
-      const token = localStorage.getItem("token");
       if (!token) {
         setError("Not logged in");
         setLoading(false);
@@ -44,7 +45,7 @@ export default function AdminPage() {
       }
     };
     fetchData();
-  }, [router, turnstilePassed]);
+  }, [router, turnstilePassed, token]);
 
   if (!turnstilePassed) {
     return (

@@ -4,24 +4,19 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ShipGrid from "@/components/ship/ShipGrid";
-import { type ShipRow } from "@/lib/types";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
+import { type CollectionDetail } from "@/lib/types";
 import { trackEvent } from "@/lib/analytics-client";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { formatDate } from "@/lib/format-date";
 
-interface Collection {
-  id: number;
-  owner: string;
-  title: string;
-  description: string;
-  ships: ShipRow[];
-  created_at: string;
-}
-
 export default function CollectionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [collection, setCollection] = useState<Collection | null>(null);
+  const { token, user } = useAuth();
+  const [collection, setCollection] = useState<CollectionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [removing, setRemoving] = useState<number | null>(null);
@@ -40,14 +35,8 @@ export default function CollectionDetailPage() {
         document.title = `${data.title} - CosmoShip`;
         trackEvent("collection_view");
 
-        const token = localStorage.getItem("token");
-        if (token) {
-          try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            if (payload.user?.username === data.owner) {
-              setIsOwner(true);
-            }
-          } catch {}
+        if (user?.username === data.owner) {
+          setIsOwner(true);
         }
       } catch {
         if (active) setCollection(null);
@@ -58,10 +47,9 @@ export default function CollectionDetailPage() {
 
     fetchCollection();
     return () => { active = false; };
-  }, [params.id]);
+  }, [params.id, user?.username]);
 
   const handleRemove = async (shipId: number) => {
-    const token = localStorage.getItem("token");
     if (!token || !collection) return;
 
     setRemoving(shipId);
@@ -83,7 +71,6 @@ export default function CollectionDetailPage() {
 
   const handleDelete = async () => {
     if (!confirm("Delete this collection?")) return;
-    const token = localStorage.getItem("token");
     if (!token || !collection) return;
 
     try {
@@ -159,13 +146,12 @@ export default function CollectionDetailPage() {
 
         <div className="flex flex-wrap gap-2">
           {collection.ships.length > 0 && (
-            <button
+            <Button
               onClick={handleDownloadAll}
               disabled={downloadingAll}
-              className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors disabled:opacity-50"
             >
               {downloadingAll ? "Zipping..." : "Download All"}
-            </button>
+            </Button>
           )}
           {isOwner && (
             <>
@@ -175,12 +161,9 @@ export default function CollectionDetailPage() {
               >
                 Edit
               </Link>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#8b0000]/25 to-[#5c0000]/25 text-red-400 hover:bg-red-400/20 hover:text-white transition-colors"
-              >
+              <Button variant="danger" onClick={handleDelete}>
                 Delete
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -195,21 +178,22 @@ export default function CollectionDetailPage() {
           <ShipGrid ships={collection.ships} />
 
           {isOwner && (
-            <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
+            <Card>
               <p className="text-blue-200 text-sm mb-2">Remove ships:</p>
               <div className="flex flex-wrap gap-2">
                 {collection.ships.map((ship) => (
-                  <button
+                  <Button
                     key={ship.id}
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleRemove(ship.id)}
                     disabled={removing === ship.id}
-                    className="px-2 py-1 text-xs border border-red-800 rounded text-red-400 hover:bg-red-400/20 transition-colors disabled:opacity-50"
                   >
                     × {ship.ship_name?.replace(".ship.png", "") ?? `Ship ${ship.id}`}
-                  </button>
+                  </Button>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
         </div>
       ) : (

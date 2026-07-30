@@ -1,5 +1,5 @@
 import ShipCard from "./ShipCard";
-import { type ShipRow } from "@/lib/types";
+import { type ShipRow } from "@/lib/db";
 
 export default function ShipGrid({ ships }: { ships: ShipRow[] }) {
   return (

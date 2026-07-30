@@ -2,20 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { isTokenExpired } from "@/lib/auth";
-
-function getToken(): string | null {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token || isTokenExpired(token)) {
-      localStorage.removeItem("token");
-      return null;
-    }
-    return token;
-  } catch {
-    return null;
-  }
-}
+import { useAuth } from "@/hooks/useAuth";
 
 async function verifyOnServer(token: string): Promise<boolean> {
   try {
@@ -31,13 +18,13 @@ async function verifyOnServer(token: string): Promise<boolean> {
 }
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { token } = useAuth();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
 
     const check = async () => {
-      const token = getToken();
       if (!token) {
         if (active) setAuthorized(false);
         return;
@@ -57,7 +44,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
       active = false;
       window.removeEventListener("storage", handler);
     };
-  }, []);
+  }, [token]);
 
   if (authorized === null) {
     return (
