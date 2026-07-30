@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyRequest } from "@/lib/auth";
 import { updateDownloads } from "@/lib/db";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyRequest(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const shipId = parseInt(id, 10);
   if (isNaN(shipId)) {

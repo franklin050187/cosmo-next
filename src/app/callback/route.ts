@@ -82,9 +82,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const discriminator = discordUser.discriminator && discordUser.discriminator !== "0"
+      ? `#${discordUser.discriminator}` : "";
     const user: UserPayload = {
       id: discordUser.id,
-      username: `${discordUser.username}#${discordUser.discriminator}`,
+      username: `${discordUser.username}${discriminator}`,
       avatar: discordUser.avatar
         ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
         : null,
@@ -97,10 +99,10 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(`${clientUrl}${returnTo}`);
     res.cookies.set("__session", token, {
       path: "/",
-      httpOnly: false,
+      httpOnly: true,
       secure: true,
       sameSite: "lax",
-      maxAge: 60,
+      maxAge: 30 * 86400,
     });
     res.cookies.set("oauth_csrf", "", { path: "/", maxAge: 0 });
     res.cookies.set("oauth_return", "", { path: "/", maxAge: 0 });

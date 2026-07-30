@@ -345,7 +345,7 @@ export async function deleteCollection(id: number, owner: string) {
 
 export async function addShipToCollection(collectionId: number, shipId: number, owner: string) {
   const col = await fetchOne("SELECT owner, ships FROM collections WHERE id = $1", [collectionId]);
-  if (!col) return { error: "collection not found" };
+  if (!col) return { error: "not found" };
   if (col.owner !== owner) return { error: "not the owner" };
   if (col.ships?.includes(shipId)) return { warning: "ship already in collection" };
   await query("UPDATE collections SET ships = COALESCE(ships, '{}') || $1::int[] WHERE id = $2", [[shipId], collectionId]);
@@ -358,7 +358,7 @@ export async function removeShipFromCollection(
   owner: string,
 ) {
   const col = await fetchOne("SELECT owner, ships FROM collections WHERE id = $1", [collectionId]);
-  if (!col) return { error: "collection not found" };
+  if (!col) return { error: "not found" };
   if (col.owner !== owner) return { error: "not the owner" };
   if (!col.ships?.includes(shipId)) return { warning: "ship not in collection" };
   await query("UPDATE collections SET ships = array_remove(ships, $1) WHERE id = $2", [

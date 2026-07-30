@@ -58,6 +58,10 @@ export function decodePngPixels(buf: ArrayBuffer) {
   );
   const width = ihdr.getUint32(0);
   const height = ihdr.getUint32(4);
+
+  if (width > 4096 || height > 4096)
+    throw new Error(`PNG dimensions too large: ${width}x${height}`);
+
   const bitDepth = ihdr.getUint8(8);
   const colorType = ihdr.getUint8(9);
   const interlace = ihdr.getUint8(12);
