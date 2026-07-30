@@ -164,7 +164,7 @@ export default function ShipDetailPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      router.push("/");
+      router.push(backUrl);
     } catch (err) {
       console.error("Failed to delete ship:", err);
     }
