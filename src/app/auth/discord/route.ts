@@ -14,9 +14,14 @@ export async function GET(req: NextRequest) {
 
   const nonce = crypto.randomBytes(32).toString("hex");
 
+  const discordClientId = process.env.DISCORD_CLIENT_ID;
+  const discordRedirectUri = process.env.DISCORD_REDIRECT_URI;
+  if (!discordClientId) throw new Error("DISCORD_CLIENT_ID is required");
+  if (!discordRedirectUri) throw new Error("DISCORD_REDIRECT_URI is required");
+
   const params = new URLSearchParams({
-    client_id: process.env.DISCORD_CLIENT_ID!,
-    redirect_uri: process.env.DISCORD_REDIRECT_URI!,
+    client_id: discordClientId,
+    redirect_uri: discordRedirectUri,
     response_type: "code",
     scope: "identify guilds",
     state: nonce,

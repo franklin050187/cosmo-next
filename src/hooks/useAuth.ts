@@ -12,6 +12,7 @@ export interface UseAuthReturn {
   token: string | null;
   user: User | null;
   isLoggedIn: boolean;
+  hydrated: boolean;
   logout: () => void;
 }
 
@@ -35,8 +36,10 @@ function initUser(token: string | null): User | null {
 export function useAuth(): UseAuthReturn {
   const [token, setToken] = useState<string | null>(initToken);
   const [user, setUser] = useState<User | null>(() => initUser(initToken()));
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
     const sessionCookie = document.cookie
       .split("; ")
       .find((c) => c.startsWith("__session="));
@@ -91,5 +94,5 @@ export function useAuth(): UseAuthReturn {
     setUser(null);
   }, []);
 
-  return { token, user, isLoggedIn: !!token, logout };
+  return { token, user, isLoggedIn: !!token, hydrated, logout };
 }

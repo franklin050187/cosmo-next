@@ -53,10 +53,9 @@ export default function FilterDrawer({
 
       {open && (
       <div
-        className="fixed inset-x-0 bottom-0 z-50 bg-[#021526] border-t border-[#1C598C] rounded-t-2xl lg:hidden"
-        style={{ maxHeight: "85vh" }}
+        className="fixed inset-x-0 bottom-0 z-50 bg-[#021526] border-t border-[#1C598C] rounded-t-2xl lg:hidden max-h-[85vh]"
       >
-        <div className="flex flex-col h-full" style={{ maxHeight: "85vh" }}>
+        <div className="flex flex-col h-full max-h-[85vh]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1C598C]/30 shrink-0">
             <div className="flex items-center gap-2">
               <h2 className="text-white font-semibold">Filters</h2>

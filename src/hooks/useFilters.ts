@@ -73,7 +73,10 @@ export function useFilters() {
       }
     }
     next.delete("page");
-    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+    clearTimeout(pushRef.current);
+    pushRef.current = setTimeout(() => {
+      router.push(`${pathname}?${next.toString()}`, { scroll: false });
+    }, 150);
   }, [searchParams, router, pathname]);
 
   const clearFilters = useCallback(() => {

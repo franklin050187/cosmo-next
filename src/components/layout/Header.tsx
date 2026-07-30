@@ -41,7 +41,7 @@ export default function Header() {
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const { user, token, logout } = useAuth();
+  const { user, token, hydrated, logout } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -127,7 +127,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           {/* Desktop: user dropdown or login */}
           <div className="hidden md:block">
-            {user ? (
+            {hydrated && user ? (
               <div ref={userMenuRef} className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -172,14 +172,14 @@ export default function Header() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : hydrated ? (
               <Link
                 href={`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`}
                 className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
               >
                 Login with Discord
               </Link>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile burger */}
@@ -225,7 +225,7 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-          {user && (
+          {hydrated && user && (
             <>
               <div className="border-t border-[#1C598C]/20 mt-2 pt-2">
                 {USER_MENU_LINKS.map((link) => (
@@ -264,7 +264,7 @@ export default function Header() {
               </div>
             </>
           )}
-          {!user && (
+          {hydrated && !user && (
             <div className="border-t border-[#1C598C]/20 mt-2 pt-2">
               <Link
                 href={`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`}

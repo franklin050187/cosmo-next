@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const result = calculateShipPrice(body);
     return NextResponse.json(result);
-  } catch {
+  } catch (err) {
+    console.error("price calculation error:", err);
     return NextResponse.json({ error: "Invalid ship data" }, { status: 400 });
   }
 }
