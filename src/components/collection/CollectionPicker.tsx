@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { isTokenExpired } from "@/lib/auth";
@@ -9,6 +9,7 @@ interface Collection {
   id: number;
   title: string;
   ship_count: number | null;
+  has_ship?: boolean;
 }
 
 interface Props {
@@ -21,43 +22,47 @@ export default function CollectionPicker({ shipId, children, className }: Props)
   const [open, setOpen] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
-  const [adding, setAdding] = useState<number | null>(null);
+  const [toggling, setToggling] = useState<number | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const msgTimer = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    if (!open) return;
+  const fetchCollections = useCallback(async (signal?: AbortSignal) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     setLoading(true);
-    let active = true;
 
-    (async () => {
-      try {
-        const res = await fetch("/api/collections/mine", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          if (isTokenExpired(token)) {
-            localStorage.removeItem("token");
-          }
-          if (active) setCollections([]);
-          return;
+    try {
+      const res = await fetch(`/api/collections/mine?shipId=${shipId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      });
+      if (!res.ok) {
+        if (isTokenExpired(token)) {
+          localStorage.removeItem("token");
         }
-        const data = await res.json();
-        if (active) setCollections(Array.isArray(data) ? data : []);
-      } catch {
-        if (active) setCollections([]);
-      } finally {
-        if (active) setLoading(false);
+        setCollections([]);
+        return;
       }
-    })();
+      const data = await res.json();
+      setCollections(Array.isArray(data) ? data : []);
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
+      setCollections([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [shipId]);
 
-    return () => { active = false; };
-  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const ac = new AbortController();
+    fetchCollections(ac.signal);
+    return () => ac.abort();
+  }, [open, fetchCollections]);
 
   useEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -76,30 +81,55 @@ export default function CollectionPicker({ shipId, children, className }: Props)
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  const addToCollection = async (collectionId: number) => {
+  const showMsg = (text: string) => {
+    if (msgTimer.current !== undefined) clearTimeout(msgTimer.current);
+    setMsg(text);
+    msgTimer.current = window.setTimeout(() => setMsg(null), 2000);
+  };
+
+  const toggleShip = async (col: Collection) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    setAdding(collectionId);
+    setToggling(col.id);
     try {
-      const res = await fetch(`/api/collections/${collectionId}/ships`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ shipId }),
-      });
-      const data = await res.json();
-      setMsg(data.warning ?? data.error ?? "Added!");
-      setOpen(false);
-      setTimeout(() => setMsg(null), 2000);
+      if (col.has_ship) {
+        const res = await fetch(`/api/collections/${col.id}/ships/${shipId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCollections((prev) =>
+            prev.map((c) => (c.id === col.id ? { ...c, has_ship: false } : c)),
+          );
+          showMsg(`Removed from "${col.title}"`);
+        } else {
+          showMsg(data.error ?? data.warning ?? "Failed to remove");
+        }
+      } else {
+        const res = await fetch(`/api/collections/${col.id}/ships`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ shipId }),
+        });
+        const data = await res.json();
+        if (data.success || data.warning) {
+          setCollections((prev) =>
+            prev.map((c) => (c.id === col.id ? { ...c, has_ship: true } : c)),
+          );
+          showMsg(data.warning ?? `Added to "${col.title}"`);
+        } else {
+          showMsg(data.error ?? "Failed to add");
+        }
+      }
     } catch {
-      setMsg("Failed to add");
-      setOpen(false);
-      setTimeout(() => setMsg(null), 2000);
+      showMsg(col.has_ship ? "Failed to remove" : "Failed to add");
     } finally {
-      setAdding(null);
+      setToggling(null);
     }
   };
 
@@ -125,7 +155,7 @@ export default function CollectionPicker({ shipId, children, className }: Props)
           {open && (
             <div
               ref={panelRef}
-              className="fixed w-56 bg-[#021526] border border-[#1C598C] rounded-md shadow-lg z-[9999] max-h-60 overflow-y-auto"
+              className="fixed w-64 bg-[#021526] border border-[#1C598C] rounded-md shadow-lg z-[9999] max-h-60 overflow-y-auto"
               style={{ top: pos.top, left: pos.left }}
             >
               {loading ? (
@@ -141,13 +171,20 @@ export default function CollectionPicker({ shipId, children, className }: Props)
                 collections.map((col) => (
                   <button
                     key={col.id}
-                    onClick={() => addToCollection(col.id)}
-                    disabled={adding === col.id}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#1C598C]/30 transition-colors disabled:opacity-40 disabled:cursor-default border-b border-[#1C598C]/20 last:border-0"
+                    onClick={() => toggleShip(col)}
+                    disabled={toggling === col.id}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#1C598C]/30 transition-colors disabled:opacity-40 disabled:cursor-default border-b border-[#1C598C]/20 last:border-0 flex items-center gap-2"
                   >
-                    <span className="text-white">{col.title}</span>
-                    {adding === col.id && (
-                      <span className="ml-2 text-cyan-400 text-xs">...</span>
+                    <span className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center text-xs ${
+                      col.has_ship
+                        ? "bg-cyan-500 border-cyan-500 text-white"
+                        : "border-gray-500"
+                    }`}>
+                      {col.has_ship ? "✓" : ""}
+                    </span>
+                    <span className="text-white truncate">{col.title}</span>
+                    {toggling === col.id && (
+                      <span className="ml-auto text-cyan-400 text-xs shrink-0">...</span>
                     )}
                   </button>
                 ))

@@ -9,7 +9,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const { getUserCollections } = await import("@/lib/db");
-    const data = await getUserCollections(payload.user.username);
+    const { searchParams } = new URL(req.url);
+    const shipId = searchParams.get("shipId");
+    const data = await getUserCollections(
+      payload.user.username,
+      shipId ? parseInt(shipId, 10) || undefined : undefined,
+    );
     return NextResponse.json(data);
   } catch (err) {
     console.error("collections/mine error:", err);

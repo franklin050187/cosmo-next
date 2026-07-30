@@ -288,10 +288,12 @@ export async function getCollection(id: number) {
   return { ...col, ships };
 }
 
-export async function getUserCollections(owner: string) {
+export async function getUserCollections(owner: string, shipId?: number) {
   const rows = await fetchAll(
-    "SELECT id, owner, title, description, array_length(ships, 1) AS ship_count, created_at FROM collections WHERE owner = $1 ORDER BY created_at DESC",
-    [owner],
+    `SELECT id, owner, title, description, array_length(ships, 1) AS ship_count, created_at${
+      shipId ? ", $2 = ANY(ships) AS has_ship" : ""
+    } FROM collections WHERE owner = $1 ORDER BY created_at DESC`,
+    shipId ? [owner, shipId] : [owner],
   );
   return rows;
 }
