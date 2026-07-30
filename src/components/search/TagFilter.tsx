@@ -111,19 +111,19 @@ export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps)
           {tagsOn.map(tag => (
             <span key={`on-${tag}`} className="inline-flex items-center gap-1 bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[11px] font-medium px-2 py-0.5 rounded-md">
               {tag}
-              <button onClick={() => toggle(tag)} aria-label={`Switch ${tag} to exclude`} className="min-w-[28px] min-h-[28px] flex items-center justify-center text-cyan-500/60 hover:text-cyan-300" title="Switch to exclude">
+              <button onClick={() => toggle(tag)} aria-label={`Switch ${tag} to exclude`} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-cyan-500/60 hover:text-cyan-300" title="Switch to exclude">
                 <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </button>
-              <button onClick={() => remove(tag)} aria-label={`Remove tag ${tag}`} className="min-w-[28px] min-h-[28px] flex items-center justify-center text-cyan-600/60 hover:text-white">&times;</button>
+              <button onClick={() => remove(tag)} aria-label={`Remove tag ${tag}`} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-cyan-600/60 hover:text-white">&times;</button>
             </span>
           ))}
           {tagsOff.map(tag => (
             <span key={`off-${tag}`} className="inline-flex items-center gap-1 bg-red-500/10 text-red-300 border border-red-500/20 text-[11px] font-medium px-2 py-0.5 rounded-md line-through decoration-red-400/40">
               {tag}
-              <button onClick={() => toggle(tag)} aria-label={`Switch ${tag} to include`} className="min-w-[28px] min-h-[28px] flex items-center justify-center text-red-500/60 hover:text-red-300 no-underline" title="Switch to include">
+              <button onClick={() => toggle(tag)} aria-label={`Switch ${tag} to include`} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-red-500/60 hover:text-red-300 no-underline" title="Switch to include">
                 <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
               </button>
-              <button onClick={() => remove(tag)} aria-label={`Remove excluded tag ${tag}`} className="min-w-[28px] min-h-[28px] flex items-center justify-center text-red-600/60 hover:text-white no-underline">&times;</button>
+              <button onClick={() => remove(tag)} aria-label={`Remove excluded tag ${tag}`} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-red-600/60 hover:text-white no-underline">&times;</button>
             </span>
           ))}
         </div>

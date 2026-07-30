@@ -66,7 +66,7 @@ export default function ActiveFilters({ filters, setFilter, setFilters, clearFil
             }`}
           >
             {chip.label}
-            <button onClick={chip.onRemove} aria-label={`Remove filter ${chip.label}`} className="ml-0.5 min-w-[28px] min-h-[28px] flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity">
+            <button onClick={chip.onRemove} aria-label={`Remove filter ${chip.label}`} className="ml-0.5 min-w-[36px] min-h-[36px] flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </span>
