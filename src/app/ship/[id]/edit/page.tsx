@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
 import UserTagEditor from "@/components/tags/UserTagEditor";
 import { extractUserTags } from "@/lib/user-tag-data";
+import ShipReplaceModal from "@/components/ship/ShipReplaceModal";
+import { uploadFiles } from "@/lib/upload-png";
 
 interface Ship {
   id: number;
@@ -18,6 +20,13 @@ interface Ship {
   tags: string[];
   submitted_by: string;
   brand: string;
+}
+
+interface PriceResponse {
+  price: number;
+  crew: number;
+  author: string;
+  tags: string[];
 }
 
 export default function EditShipPage() {
@@ -33,6 +42,13 @@ export default function EditShipPage() {
   const [userTags, setUserTags] = useState<string[]>([]);
   const [autoTags, setAutoTags] = useState<string[]>([]);
   const [brand, setBrand] = useState("gen");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [replaceModalOpen, setReplaceModalOpen] = useState(false);
+  const [replacing, setReplacing] = useState(false);
+  const [replacePreview, setReplacePreview] = useState("");
+  const [replaceResult, setReplaceResult] = useState<PriceResponse | null>(null);
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchShip = async () => {
@@ -104,6 +120,78 @@ export default function EditShipPage() {
     }
   };
 
+  const handleCancel = () => {
+    router.push(`/ship/${params.id}`);
+  };
+
+  const handleReplaceShip = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setReplaceFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => setReplacePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    try {
+      const mod = (await import("@/lib/cosmoShip")) as Record<string, unknown>;
+      const Ship = mod.Ship as {
+        fromSource: (f: File) => Promise<{ data: unknown }>;
+      };
+      const decoded = await Ship.fromSource(file);
+      const { calculateShipPrice } = await import("@/lib/price");
+      const result = calculateShipPrice(
+        decoded.data as Parameters<typeof calculateShipPrice>[0]
+      );
+      setReplaceResult(result);
+      setReplaceModalOpen(true);
+    } catch (err) {
+      console.error("Decode error:", err);
+      setReplacePreview("");
+      setReplaceFile(null);
+    }
+
+    e.target.value = "";
+  };
+
+  const handleReplaceConfirm = async () => {
+    if (!ship || !replaceResult || !replaceFile) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setReplacing(true);
+    try {
+      const file = replaceFile;
+
+      await uploadFiles({
+        files: [file],
+        token,
+        endpoint: "shipReplacer",
+        shipId: ship.id,
+        description,
+        brand,
+        tags: userTags,
+      });
+
+      router.refresh();
+      router.push(`/ship/${ship.id}`);
+    } catch (err) {
+      console.error("Replace failed:", err);
+    } finally {
+      setReplacing(false);
+      setReplaceModalOpen(false);
+      setReplacePreview("");
+      setReplaceResult(null);
+      setReplaceFile(null);
+    }
+  };
+
   useEffect(() => {
     if (notOwner) {
       router.push(`/ship/${params.id}`);
@@ -119,6 +207,14 @@ export default function EditShipPage() {
       <h1 className="text-4xl text-white text-center uppercase mb-8">
         Edit Ship
       </h1>
+
+      <input
+        type="file"
+        accept=".png,image/png"
+        className="hidden"
+        ref={fileInputRef}
+        onChange={handleFileSelected}
+      />
 
       <div className="border border-[#1C598C] rounded-md bg-[#021526]/65 backdrop-blur p-4">
         <div className="md:grid md:grid-cols-2 md:gap-6">
@@ -177,7 +273,13 @@ export default function EditShipPage() {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 border border-gray-600 rounded text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -185,11 +287,39 @@ export default function EditShipPage() {
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
+              <button
+                onClick={handleReplaceShip}
+                className="px-4 py-2 border border-amber-500/50 rounded text-amber-300 hover:bg-amber-500/20 transition-colors"
+              >
+                Replace Ship
+              </button>
               <AddToCollectionButton shipId={ship.id} />
             </div>
           </div>
         </div>
       </div>
+
+      {replaceModalOpen && replaceResult && (
+        <ShipReplaceModal
+          previewUrl={replacePreview}
+          currentAuthor={ship.author}
+          currentPrice={ship.price}
+          currentCrew={ship.crew}
+          currentAutoTags={autoTags}
+          newAuthor={replaceResult.author}
+          newPrice={replaceResult.price}
+          newCrew={replaceResult.crew}
+          newAutoTags={replaceResult.tags}
+          onConfirm={handleReplaceConfirm}
+          onCancel={() => {
+            setReplaceModalOpen(false);
+            setReplacePreview("");
+            setReplaceResult(null);
+            setReplaceFile(null);
+          }}
+          replacing={replacing}
+        />
+      )}
     </div>
   );
 }

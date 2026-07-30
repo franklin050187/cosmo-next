@@ -7,6 +7,7 @@ import ShipGrid from "@/components/ship/ShipGrid";
 import { type ShipRow } from "@/lib/types";
 import { trackEvent } from "@/lib/analytics-client";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { formatDate } from "@/lib/format-date";
 
 interface Collection {
   id: number;
@@ -153,6 +154,7 @@ export default function CollectionDetailPage() {
           <p className="text-blue-200 text-sm mt-1">
             by {collection.owner} · {collection.ships.length} ship{collection.ships.length !== 1 ? "s" : ""}
           </p>
+          <p className="text-gray-400 text-xs">Created {formatDate(collection.created_at)}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">

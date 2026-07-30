@@ -6,6 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useShipDecode } from "@/hooks/useShipDecode";
 import PreconnectForImage from "@/components/ui/PreconnectForImage";
+import { formatDate } from "@/lib/format-date";
 
 const ShipStats = dynamic(() => import("@/components/ship/ShipStats"), {
   ssr: false,
@@ -226,6 +227,9 @@ export default function ShipDetailPage() {
             </p>
             <p className="text-white mb-2">
               <span className="text-blue-200">Submitted by:</span> {ship.submitted_by}
+            </p>
+            <p className="text-white mb-2">
+              <span className="text-blue-200">Uploaded:</span> {formatDate(ship.date)}
             </p>
 
             {ship.brand === "exl" && (

@@ -13,6 +13,8 @@ export async function uploadFiles(opts: {
   brand?: string;
   tags?: string[];
   turnstileToken?: string;
+  endpoint?: string;
+  shipId?: number;
 }) {
   const headers: Record<string, string> = {};
   if (opts.token) {
@@ -30,7 +32,10 @@ export async function uploadFiles(opts: {
   if (opts.turnstileToken) {
     headers["x-turnstile-token"] = opts.turnstileToken;
   }
-  const results = await utUpload("pngUploader", {
+  if (opts.shipId) {
+    headers["x-ship-id"] = String(opts.shipId);
+  }
+  const results = await utUpload(opts.endpoint ?? "pngUploader", {
     files: opts.files,
     headers,
   });

@@ -81,6 +81,21 @@ body {
   background: rgba(28, 89, 140, 0.7);
 }
 
+.scrollbar-themed::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-themed::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-themed::-webkit-scrollbar-thumb {
+  background: rgba(28, 89, 140, 0.4);
+  border-radius: 3px;
+}
+.scrollbar-themed::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 89, 140, 0.7);
+}
+
 /* Number input: hide spinners */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

@@ -50,7 +50,7 @@ export default function ShipCard({ ship, priority = false }: { ship: ShipRow; pr
   return (
     <li className="group relative border border-[#1C598C]/50 rounded-xl bg-[#021526]/80 backdrop-blur shadow-[0_0_12px_rgba(0,126,255,0.15)] hover:shadow-[0_0_20px_rgba(0,126,255,0.25)] hover:border-cyan-400/30 transition-all duration-200">
       {/* Image */}
-      <Link href={`/ship/${ship.id}`} className="block relative overflow-hidden rounded-t-xl" aria-label={ship.ship_name} onClick={saveBackUrl}>
+      <div className="relative overflow-hidden rounded-t-xl">
         <img
           src={ship.data}
           alt={ship.ship_name}
@@ -61,8 +61,15 @@ export default function ShipCard({ ship, priority = false }: { ship: ShipRow; pr
           className="block w-full aspect-square object-contain bg-[#0a1e33]/50 group-hover:scale-[1.02] transition-transform duration-300"
         />
 
+        <Link
+          href={`/ship/${ship.id}`}
+          className="absolute inset-0"
+          aria-label={ship.ship_name}
+          onClick={saveBackUrl}
+        />
+
         {/* Stats overlay — top */}
-        <div className="absolute top-0 inset-x-0 flex items-center justify-between px-2.5 py-2 bg-gradient-to-b from-black/60 to-transparent">
+        <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center justify-between px-2.5 py-2 bg-gradient-to-b from-black/60 to-transparent">
           <span className="flex items-center gap-1 text-white text-xs font-medium">
             <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -79,12 +86,12 @@ export default function ShipCard({ ship, priority = false }: { ship: ShipRow; pr
         </div>
 
         {/* Price badge — bottom left */}
-        <div className="absolute bottom-2 left-2 bg-[#021526]/80 backdrop-blur-sm border border-[#1C598C]/50 rounded-lg px-2 py-1">
+        <div className="pointer-events-none absolute bottom-2 left-2 bg-[#021526]/80 backdrop-blur-sm border border-[#1C598C]/50 rounded-lg px-2 py-1">
           <span className="text-[#0AD448] text-xs font-semibold">
             {formatPrice(ship.price)}&#x20a2;
           </span>
         </div>
-      </Link>
+      </div>
 
       {/* Action buttons — outside the Link so clicks don't navigate */}
       {isLoggedIn && (

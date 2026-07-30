@@ -89,7 +89,7 @@ export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps)
 
   const dropdown = showDD && matches.length > 0 ? createPortal(
     <div
-      className="fixed z-[9999] bg-[#0a1a2e] border border-[#1C598C]/60 rounded-lg shadow-xl shadow-black/40 max-h-48 overflow-y-auto overscroll-contain"
+      className="fixed z-[9999] bg-[#0a1a2e] border border-[#1C598C]/60 rounded-lg shadow-xl shadow-black/40 max-h-48 overflow-y-auto overscroll-contain scrollbar-themed"
       style={{ top: ddPos.top, left: ddPos.left, width: ddPos.width }}
     >
       {!input && (

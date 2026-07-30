@@ -1,12 +1,46 @@
 import { createUploadthing } from "uploadthing/next";
+import { UTApi } from "uploadthing/server";
 import { decodeShipFromUrl, decodeShipFromPixels } from "@/lib/server-decode";
 import { calculateShipPrice } from "@/lib/price";
-import { insertShip } from "@/lib/db";
+import { insertShip, updateShip, getImageData } from "@/lib/db";
 import { verifyToken, type TokenPayload } from "@/lib/auth";
 import { computeShipSignature } from "@/lib/ship-signature";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const f = createUploadthing();
+
+function commonMiddleware({ req }: { req: Request }) {
+  const headers = req.headers;
+  const authHeader = headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
+  let payload: TokenPayload | null = null;
+  if (token) {
+    try {
+      payload = verifyToken(token);
+    } catch {
+      // invalid token, continue as anonymous
+    }
+  }
+
+  const description = headers.get("x-description") ?? "";
+  const brand = headers.get("x-brand") ?? "gen";
+
+  let userTags: string[] = [];
+  const tagsHeader = headers.get("x-tags");
+  if (tagsHeader) {
+    try {
+      const parsed = JSON.parse(tagsHeader);
+      if (Array.isArray(parsed)) {
+        userTags = parsed.filter((t: unknown) => typeof t === "string");
+      }
+    } catch {}
+  }
+
+  return { token, payload, description, brand, userTags };
+}
 
 export const uploadRouter = {
   pngUploader: f({
@@ -16,34 +50,7 @@ export const uploadRouter = {
     },
   })
     .middleware(async ({ req }) => {
-      const headers = req.headers;
-      const authHeader = headers.get("authorization");
-      const token = authHeader?.startsWith("Bearer ")
-        ? authHeader.slice(7)
-        : null;
-
-      let payload: TokenPayload | null = null;
-      if (token) {
-        try {
-          payload = verifyToken(token);
-        } catch {
-          // invalid token, continue as anonymous
-        }
-      }
-
-      const description = headers.get("x-description") ?? "";
-      const brand = headers.get("x-brand") ?? "gen";
-
-      let userTags: string[] = [];
-      const tagsHeader = headers.get("x-tags");
-      if (tagsHeader) {
-        try {
-          const parsed = JSON.parse(tagsHeader);
-          if (Array.isArray(parsed)) {
-            userTags = parsed.filter((t: unknown) => typeof t === "string");
-          }
-        } catch {}
-      }
+      const { token, payload, description, brand, userTags } = commonMiddleware({ req });
 
       if (!token || !payload?.user) {
         throw new Error(
@@ -52,6 +59,7 @@ export const uploadRouter = {
       }
 
       if (process.env.NODE_ENV !== "development") {
+        const headers = req.headers;
         const turnstileToken = headers.get("x-turnstile-token") || "";
         const ip = headers.get("x-forwarded-for") || headers.get("x-real-ip") || "";
         const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
@@ -98,6 +106,84 @@ export const uploadRouter = {
       } catch (err) {
         console.error("Failed to process uploaded ship:", err);
         return { shipId: null };
+      }
+    }),
+
+  shipReplacer: f({
+    "image/png": {
+      maxFileSize: "8MB",
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async ({ req }) => {
+      const { token, payload, description, brand, userTags } = commonMiddleware({ req });
+
+      if (!token || !payload?.user) {
+        throw new Error("You must be logged in to replace ships.");
+      }
+
+      const shipIdHeader = req.headers.get("x-ship-id");
+      if (!shipIdHeader) {
+        throw new Error("Missing x-ship-id header");
+      }
+      const shipId = parseInt(shipIdHeader, 10);
+      if (isNaN(shipId)) {
+        throw new Error("Invalid x-ship-id header");
+      }
+
+      const ship = await getImageData(shipId);
+      if (!ship) {
+        throw new Error("Ship not found");
+      }
+      if (ship.submitted_by !== payload.user.username) {
+        throw new Error("You do not own this ship");
+      }
+
+      return { submittedBy: payload.user.username, shipId, oldData: ship.data, description, brand, userTags };
+    })
+    .onUploadComplete(async ({ file, metadata }) => {
+      try {
+        const imageData = await decodeShipFromUrl(file.ufsUrl);
+        const shipData = decodeShipFromPixels(imageData);
+        const priceInfo = calculateShipPrice(
+          shipData as Parameters<typeof calculateShipPrice>[0]
+        );
+        const signature = computeShipSignature(shipData);
+
+        const allTags = [...new Set([...priceInfo.tags, ...metadata.userTags])];
+
+        await updateShip({
+          id: metadata.shipId,
+          name: file.name ?? "unknown",
+          data: file.ufsUrl,
+          submittedBy: metadata.submittedBy,
+          description: metadata.description,
+          shipName: (file.name ?? "unknown").replace(".ship.png", ""),
+          author: priceInfo.author,
+          price: priceInfo.price,
+          brand: metadata.brand,
+          crew: priceInfo.crew,
+          tags: allTags,
+          signature,
+        });
+
+        if (metadata.oldData) {
+          try {
+            const url = new URL(metadata.oldData);
+            const fileKey = url.pathname.split("/").pop();
+            if (fileKey) {
+              const utapi = new UTApi();
+              await utapi.deleteFiles(fileKey);
+            }
+          } catch {
+            // best-effort
+          }
+        }
+
+        return { shipId: metadata.shipId };
+      } catch (err) {
+        console.error("Failed to process replacement ship:", err);
+        throw new Error("Replacement processing failed");
       }
     }),
 };

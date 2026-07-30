@@ -76,7 +76,7 @@ export default function FilterDrawer({
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-themed">
             <FilterBody
               filters={filters}
               setFilter={setFilter}
