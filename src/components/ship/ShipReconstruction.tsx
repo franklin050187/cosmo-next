@@ -280,25 +280,13 @@ export default function ShipReconstruction({ stats, parts }: Props) {
       const totalThrust = stats.thrustDirection.reduce((a, b) => a + b, 0) || 1;
 
       for (let i = 0; i < 8; i++) {
-        if (i !== 7) continue;
         const origin = stats.originThrust[i];
         if (!origin) continue;
         if (stats.thrustDirection[i] === 0) continue;
 
         const dx = (stats.thrustVector[i].x - origin.x) / totalThrust;
         const dy = (stats.thrustVector[i].y - origin.y) / totalThrust;
-        drawArrow(origin.x, origin.y, dx, dy, "#00c800");
-      }
-
-      for (let i = 0; i < 8; i++) {
-        if (i === 7) continue;
-        const origin = stats.originThrust[i];
-        if (!origin) continue;
-        if (stats.thrustDirection[i] === 0) continue;
-
-        const dx = (stats.thrustVector[i].x - origin.x) / totalThrust;
-        const dy = (stats.thrustVector[i].y - origin.y) / totalThrust;
-        drawArrow(origin.x, origin.y, dx, dy, "#ffff00");
+        drawArrow(origin.x, origin.y, dx, dy, i === 7 ? "#00c800" : "#ffff00");
       }
     }
 

@@ -245,6 +245,7 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
         setFilter={setFilter}
         setFilters={setFilters}
         clearFilters={clearFilters}
+        activeCount={activeCount}
         resultCount={ships.length}
       />
     </div>

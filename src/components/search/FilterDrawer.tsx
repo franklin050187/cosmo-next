@@ -11,6 +11,7 @@ interface FilterDrawerProps {
   setFilter: (key: string, value: string | string[]) => void;
   setFilters: (entries: [string, string | string[]][]) => void;
   clearFilters: () => void;
+  activeCount: number;
   resultCount: number;
 }
 
@@ -21,6 +22,7 @@ export default function FilterDrawer({
   setFilter,
   setFilters,
   clearFilters,
+  activeCount,
   resultCount,
 }: FilterDrawerProps) {
   useEffect(() => {
@@ -39,11 +41,6 @@ export default function FilterDrawer({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
-
-  const activeCount = filters.tags.length + filters.notags.length +
-    (filters.author ? 1 : 0) + (filters.minprice ? 1 : 0) +
-    (filters.maxprice ? 1 : 0) + (filters.maxCrew ? 1 : 0) +
-    (filters.brand ? 1 : 0);
 
   return (
     <>

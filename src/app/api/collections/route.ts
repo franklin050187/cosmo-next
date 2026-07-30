@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     if (shipId) {
       const shipIdNum = parseInt(shipId, 10);
       if (isNaN(shipIdNum)) {
-        return NextResponse.json({ data: [] });
+        return NextResponse.json({ error: "invalid shipId" }, { status: 400 });
       }
       const { getCollectionsForShip } = await import("@/lib/db");
       const data = await getCollectionsForShip(shipIdNum);

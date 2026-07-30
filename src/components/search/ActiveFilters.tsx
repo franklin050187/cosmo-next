@@ -12,9 +12,9 @@ interface ActiveFiltersProps {
 function formatPrice(val: string): string {
   const n = parseInt(val, 10);
   if (!n) return "";
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${n}`;
+  if (n >= 1_000_000) return `₡${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `₡${(n / 1_000).toFixed(0)}K`;
+  return `₡${n}`;
 }
 
 interface Chip { label: string; onRemove: () => void; kind?: "include" | "exclude" | "normal" }

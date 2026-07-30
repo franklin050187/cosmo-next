@@ -227,7 +227,7 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
                 <div className="relative shrink-0">
                   <img
                     src={ship.data}
-                    alt=""
+                    alt={name}
                     className="w-10 h-10 rounded object-contain bg-[#021526] border border-[#1C598C]/30"
                     loading="lazy"
                   />
