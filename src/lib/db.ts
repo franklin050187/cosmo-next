@@ -425,10 +425,8 @@ export async function getSearchPlus(filters: SearchFilters) {
   const countRow = await fetchOne(`SELECT COUNT(*) FROM shipdb${where}`, args);
   const maxPage = Math.ceil(parseInt(countRow?.count ?? "0", 10) / PAGE_SIZE);
 
-  const order =
-    filters.order === "fav" ? "fav DESC" :
-    filters.order === "pop" ? "downloads DESC" :
-    "date DESC";
+  const ORDER_BY_ALLOW: Record<string, string> = { fav: "fav DESC", pop: "downloads DESC" };
+  const order = ORDER_BY_ALLOW[filters.order ?? ""] ?? "date DESC";
 
   const limit = page === -1 ? 999999 : PAGE_SIZE;
   const offset = page === -1 ? null : (page - 1) * PAGE_SIZE;

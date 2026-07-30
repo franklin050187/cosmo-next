@@ -1,37 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import ShipGrid from "@/components/ship/ShipGrid";
 import RequireAuth from "@/components/RequireAuth";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { type ShipRow } from "@/lib/db";
 
 function FavoritesContent() {
-  const { token } = useAuth();
-  const [ships, setShips] = useState<ShipRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (!token) return;
-
-      try {
-        const res = await fetch("/api/ship/favorites", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setShips(data.data ?? []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch favorites:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFavorites();
-  }, [token]);
+  const { data, loading } = useAuthFetch<{ data: ShipRow[] }>("/api/ship/favorites");
+  const ships = data?.data ?? [];
 
   return (
     <>

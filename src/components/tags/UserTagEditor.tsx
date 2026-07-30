@@ -30,9 +30,9 @@ export default function UserTagEditor({ value, onChange, brand, onBrandChange }:
 
   const toggle = (v: string, type: "radio" | "checkbox", group?: string) => {
     if (type === "radio") {
-      onChange(
-        value.includes(v) ? value.filter((t) => t !== v) : [...value, v]
-      );
+      const siblings = TAG_CATEGORIES.find((c) => c.id === group)?.options.map((o) => o.value) ?? [];
+      const withoutSiblings = value.filter((t) => !siblings.includes(t));
+      onChange(value.includes(v) ? withoutSiblings : [...withoutSiblings, v]);
     } else {
       onChange(
         value.includes(v) ? value.filter((t) => t !== v) : [...value, v]
@@ -192,7 +192,7 @@ function TagSection({
 }: {
   category: (typeof TAG_CATEGORIES)[number];
   value: string[];
-  onToggle: (v: string, type: "radio" | "checkbox") => void;
+  onToggle: (v: string, type: "radio" | "checkbox", group?: string) => void;
 }) {
   return (
     <div className="border border-[#1C598C]/30 rounded-lg bg-[#0a1e33]/50 p-3">
@@ -206,7 +206,7 @@ function TagSection({
             <button
               key={opt.value}
               type="button"
-              onClick={() => onToggle(opt.value, category.type)}
+              onClick={() => onToggle(opt.value, category.type, category.id)}
               className={`
                 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all
                 ${

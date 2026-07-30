@@ -24,6 +24,7 @@ const ShipPriceAnalysis = dynamic(
 );
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { downloadShip } from "@/lib/download-ship";
 
 export default function ShipDetailPage() {
   const params = useParams();
@@ -103,31 +104,9 @@ export default function ShipDetailPage() {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!ship) return;
-
-    await fetch(`/api/ship/${params.id}/download`, { method: "POST" });
-
-    try {
-      const res = await fetch(ship.data);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = ship.ship_name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch {
-      const link = document.createElement("a");
-      link.href = ship.data;
-      link.download = ship.ship_name;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    downloadShip(Number(params.id), ship.ship_name, ship.data);
   };
 
   const handleDelete = async () => {

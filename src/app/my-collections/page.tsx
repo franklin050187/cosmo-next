@@ -1,41 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import RequireAuth from "@/components/RequireAuth";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthFetch } from "@/hooks/useAuthFetch";
 import CollectionGrid from "@/components/collection/CollectionGrid";
 import { type CollectionSummary } from "@/lib/types";
 
 function MyCollectionsContent() {
-  const { token } = useAuth();
-  const [collections, setCollections] = useState<CollectionSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchCollections = () => {
-    if (!token) return;
-
-    fetch("/api/collections/mine", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => setCollections(Array.isArray(data) ? data : []))
-      .catch(() => setCollections([]))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchCollections();
-  }, [token]);
+  const { data, loading, refetch } = useAuthFetch<CollectionSummary[]>("/api/collections/mine");
+  const collections = data ?? [];
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this collection?")) return;
-    if (!token) return;
-    await fetch(`/api/collections/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    fetchCollections();
+    await fetch(`/api/collections/${id}`, { method: "DELETE" });
+    refetch();
   };
 
   return (
