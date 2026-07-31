@@ -35,8 +35,15 @@ broken-links.log
 # opencode
 .opencode/
 
+# playwright-cli QA
+.playwright/
+.qa/
+
 # docs
 CODE_REVIEW_FINDINGS.md
+CODE_REVIEW_FINDINGS_NEXT.md
+AGENTS.md
+/scripts
 
 # typescript
 *.tsbuildinfo
