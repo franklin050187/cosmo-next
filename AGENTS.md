@@ -9,7 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 Port **8000** is required (Discord OAuth callback). Start detached so the process survives shell exit:
 
 ```bash
-setsid bash -c 'cd /home/johnn/cosmo-api/uploadthing/cosmo-next && exec npx next dev -p 8000 >> /tmp/next-server.log 2>&1' &
+setsid bash -c 'cd /home/johnn/cosmo-next && exec npx next dev -p 8000 >> /tmp/next-server.log 2>&1' &
 ```
 
 Verify with `curl -s -o /dev/null -w "%{http_code}" http://localhost:8000` (expect 200).

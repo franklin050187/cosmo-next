@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
 import UserTagEditor from "@/components/tags/UserTagEditor";
@@ -282,7 +283,15 @@ export default function UploadPanel() {
           <p className="text-[#0AD448] text-xl mb-4">
             Ship uploaded successfully!
           </p>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-2 justify-center flex-wrap">
+            {uploadedShipId && (
+              <Link
+                href={`/ship/${uploadedShipId}`}
+                className="px-4 py-2 border border-[#1C598C] rounded bg-gradient-to-b from-[#1e3851]/25 to-[#124c80]/25 text-cyan-400 hover:bg-cyan-400/20 hover:text-white transition-colors"
+              >
+                View Ship
+              </Link>
+            )}
             <Button onClick={handleReset}>
               Upload Another
             </Button>

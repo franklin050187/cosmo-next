@@ -25,6 +25,11 @@ export default function FilterDrawer({
   activeCount,
   resultCount,
 }: FilterDrawerProps) {
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (open && window.innerWidth < 1024) {
       document.body.style.overflow = "hidden";
@@ -34,12 +39,43 @@ export default function FilterDrawer({
     };
   }, [open]);
 
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    if (open) {
+      prevFocusRef.current = document.activeElement as HTMLElement | null;
+      const drawer = drawerRef.current;
+      if (drawer) {
+        const first = drawer.querySelector<HTMLElement>(
+          "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])"
+        );
+        first?.focus();
+      }
+    } else if (prevFocusRef.current) {
+      prevFocusRef.current.focus();
+      prevFocusRef.current = null;
+    }
+  }, [open]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && open) onCloseRef.current();
+      if (e.key !== "Tab" || !open) return;
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])"
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -56,12 +92,16 @@ export default function FilterDrawer({
 
       {open && (
       <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filter-drawer-title"
         className="fixed inset-x-0 bottom-0 z-50 bg-[#021526] border-t border-[#1C598C] rounded-t-2xl lg:hidden max-h-[85vh]"
       >
         <div className="flex flex-col h-full max-h-[85vh]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1C598C]/30 shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-white font-semibold">Filters</h2>
+              <h2 id="filter-drawer-title" className="text-white font-semibold">Filters</h2>
               {activeCount > 0 && (
                 <span className="bg-cyan-400/20 text-cyan-300 text-xs px-2 py-0.5 rounded-full">
                   {activeCount}
