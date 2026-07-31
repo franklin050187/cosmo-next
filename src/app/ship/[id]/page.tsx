@@ -14,13 +14,35 @@ import { type ShipDetail } from "@/lib/types";
 
 const ShipStats = dynamic(() => import("@/components/ship/ShipStats"), {
   ssr: false,
+  loading: () => (
+    <Card className="mt-6">
+      <div className="flex items-center gap-3">
+        <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-blue-200">Analyzing ship…</p>
+      </div>
+    </Card>
+  ),
 });
 const ShipJson = dynamic(() => import("@/components/ship/ShipJson"), {
   ssr: false,
+  loading: () => (
+    <div className="flex items-center gap-3 mt-6">
+      <div className="h-4 w-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+      <p className="text-blue-200 text-sm">Decoding ship blueprint…</p>
+    </div>
+  ),
 });
 const ShipPriceAnalysis = dynamic(
   () => import("@/components/ship/ShipPriceAnalysis"),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center gap-3">
+        <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-blue-200">Analyzing price breakdown…</p>
+      </div>
+    ),
+  }
 );
 import AddToCollectionButton from "@/components/collection/AddToCollectionButton";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -142,6 +164,8 @@ export default function ShipDetailPage() {
       <h1 className="text-4xl text-white text-center uppercase mb-8">
         {ship.ship_name.replace(".ship.png", "")}
       </h1>
+
+      {ship && <ShipAnalysisPreloader imageUrl={ship.data} />}
 
       <Card>
         <div className="flex flex-col lg:flex-row gap-8">
@@ -305,6 +329,46 @@ export default function ShipDetailPage() {
         </Card>
       )}
       {showJson && <div className="mt-6"><ShipJson imageUrl={ship.data} /></div>}
+    </div>
+  );
+}
+
+function deferIdle(cb: () => void): () => void {
+  const w = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+  if (w.requestIdleCallback) {
+    const id = w.requestIdleCallback(cb, { timeout: 2000 });
+    return () => w.cancelIdleCallback?.(id);
+  }
+  const id = window.setTimeout(cb, 1500);
+  return () => window.clearTimeout(id);
+}
+
+function ShipAnalysisPreloader({ imageUrl }: { imageUrl: string }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    return deferIdle(() => setReady(true));
+  }, []);
+
+  if (!ready) return null;
+  return <ShipAnalysisIndicator imageUrl={imageUrl} />;
+}
+
+function ShipAnalysisIndicator({ imageUrl }: { imageUrl: string }) {
+  const { loading } = useShipDecode(imageUrl);
+
+  if (!loading) return null;
+
+  return (
+    <div className="flex items-center justify-center gap-3 py-3">
+      <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+      <p className="text-blue-200 text-sm">
+        Analyzing blueprint… this can take a moment for large ships
+      </p>
     </div>
   );
 }

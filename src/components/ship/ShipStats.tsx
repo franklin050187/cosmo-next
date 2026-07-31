@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Card from "@/components/ui/Card";
 import { useShipDecode } from "@/hooks/useShipDecode";
-import { calculateShipStats } from "@/lib/physics";
+import { calculateShipStatsAsync } from "@/lib/physics";
 import type { ShipStats as ShipStatsType } from "@/lib/physics";
 import dynamic from "next/dynamic";
 
@@ -42,7 +42,7 @@ export default function ShipStats({ imageUrl }: Props) {
 
     (async () => {
       try {
-        const stats = calculateShipStats(decoded);
+        const stats = await calculateShipStatsAsync(decoded);
         const result: CachedStats = { stats, parts: decoded.Parts };
         statsCache.set(imageUrl, result);
         if (active) setCached(result);
@@ -56,7 +56,7 @@ export default function ShipStats({ imageUrl }: Props) {
     };
   }, [decoded, cached, imageUrl]);
 
-  if (loading) {
+  if (loading || !cached) {
     return (
       <Card className="mt-6">
         <div className="flex items-center gap-3">

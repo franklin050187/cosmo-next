@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { centerOfMass, type ShipStats } from "@/lib/physics";
 import { partPhysics } from "@/lib/physics-data";
 
@@ -102,13 +102,19 @@ function getRotatedSize(partId: string, rotation: number): [number, number] {
 
 export default function ShipReconstruction({ stats, parts }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [rendering, setRendering] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
+    const yieldToMain = () => new Promise<void>((r) => setTimeout(r, 0));
+    const DRAW_CHUNK = 400;
+
     async function render() {
       const canvas = canvasRef.current;
       if (!canvas) return;
+
+      setRendering(true);
 
       let minX = Infinity;
       let maxX = -Infinity;
@@ -213,6 +219,11 @@ export default function ShipReconstruction({ stats, parts }: Props) {
         }
 
         ctx.restore();
+
+        if (i > 0 && i % DRAW_CHUNK === 0) {
+          await yieldToMain();
+          if (cancelled) return;
+        }
       }
 
       const comX = toX(stats.centerX);
@@ -288,6 +299,8 @@ export default function ShipReconstruction({ stats, parts }: Props) {
         const dy = (stats.thrustVector[i].y - origin.y) / totalThrust;
         drawArrow(origin.x, origin.y, dx, dy, i === 7 ? "#00c800" : "#ffff00");
       }
+
+      if (!cancelled) setRendering(false);
     }
 
     render();
@@ -297,11 +310,19 @@ export default function ShipReconstruction({ stats, parts }: Props) {
   }, [stats, parts]);
 
   return (
-    <div>
+    <div className="relative">
       <canvas
         ref={canvasRef}
         className="w-full h-auto border border-[#1C598C] rounded"
       />
+      {rendering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#021526]/70 rounded">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-blue-200 text-sm">Generating ship image…</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import pg from "pg";
 
 const PAGE_SIZE = 24;
 
+const sanitizeText = (s: string) => s.replace(/\u0000/g, "");
+
 let pool: pg.Pool | null = null;
 
 function getPool(): pg.Pool {
@@ -153,7 +155,18 @@ export async function insertShip({
       client,
       `INSERT INTO shipdb (name, data, submitted_by, description, ship_name, author, price, brand, crew, tags)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::text[]) RETURNING id`,
-      [name, data, submittedBy, description, shipName, author, price, brand, crew, tags],
+      [
+        sanitizeText(name),
+        data,
+        sanitizeText(submittedBy),
+        sanitizeText(description),
+        sanitizeText(shipName),
+        sanitizeText(author),
+        price,
+        sanitizeText(brand),
+        crew,
+        tags.map(sanitizeText),
+      ],
     );
     const shipId = rows[0]?.id;
     if (shipId && signature) {
@@ -199,7 +212,19 @@ export async function updateShip({
       client,
       `UPDATE shipdb SET name=$1, data=$2, submitted_by=$3, description=$4, ship_name=$5,
        author=$6, price=$7, brand=$8, crew=$9, tags=$10::text[] WHERE id=$11`,
-      [name, data, submittedBy, description, shipName, author, price, brand, crew, tags, id],
+      [
+        sanitizeText(name),
+        data,
+        sanitizeText(submittedBy),
+        sanitizeText(description),
+        sanitizeText(shipName),
+        sanitizeText(author),
+        price,
+        sanitizeText(brand),
+        crew,
+        tags.map(sanitizeText),
+        id,
+      ],
     );
     if (signature) {
       await queryOnClient(client, "DELETE FROM ship_signatures WHERE ship_id = $1", [id]);

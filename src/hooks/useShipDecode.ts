@@ -21,6 +21,7 @@ export interface DecodedShip {
 }
 
 const cache = new Map<string, DecodedShip>();
+const inflight = new Map<string, Promise<DecodedShip>>();
 
 export function useShipDecode(imageUrl: string) {
   const [decoded, setDecoded] = useState<DecodedShip | null>(() => {
@@ -43,25 +44,35 @@ export function useShipDecode(imageUrl: string) {
 
     let active = true;
 
-    (async () => {
-      setLoading(true);
-      try {
+    let promise = inflight.get(imageUrl);
+    if (!promise) {
+      promise = (async () => {
         const res = await fetch(imageUrl);
         if (!res.ok) throw new Error("Failed to fetch ship image");
         const blob = await res.blob();
-
         const ship = await Ship.fromSource(blob);
         const result = ship.data as DecodedShip;
-
         cache.set(imageUrl, result);
+        return result;
+      })();
+      inflight.set(imageUrl, promise);
+      promise.finally(() => {
+        inflight.delete(imageUrl);
+      });
+    }
+
+    setLoading(true);
+    promise
+      .then((result) => {
         if (active) setDecoded(result);
-      } catch (err) {
+      })
+      .catch((err) => {
         console.error("Decode error:", err);
         if (active) setError("Failed to decode ship data from image.");
-      } finally {
+      })
+      .finally(() => {
         if (active) setLoading(false);
-      }
-    })();
+      });
 
     return () => {
       active = false;

@@ -21,6 +21,10 @@ function vLerp(a: Vec2, b: Vec2, t: number): Vec2 {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
+function yieldToScheduler(): Promise<void> {
+  return new Promise((r) => setTimeout(r, 0));
+}
+
 interface Part {
   ID: string;
   Location: [number, number];
@@ -151,18 +155,18 @@ function partCenterOfThrust(part: Part, boost: boolean): CotResult[] | 0 {
   return results;
 }
 
-export function centerOfThrust(
-  parts: Part[],
-  boost: boolean
-): {
+interface ThrustAccum {
   originThrust: Vec2[];
-  thrustVector: Vec2[];
   thrustDirection: number[];
-} {
-  const originThrust: Vec2[] = [v(0, 0), v(0, 0), v(0, 0), v(0, 0)];
-  const thrustDirection = [0, 0, 0, 0];
+}
 
-  for (const part of parts) {
+function accumulateThrust(
+  thrusters: Part[],
+  allParts: Part[],
+  boost: boolean,
+  acc: ThrustAccum
+): void {
+  for (const part of thrusters) {
     const cots = partCenterOfThrust(part, boost);
     if (cots === 0) continue;
 
@@ -170,12 +174,12 @@ export function centerOfThrust(
       let { origin, thrust } = cot;
       const { orientation } = cot;
 
-      if (thrusterTouchingEngineRoom(parts, part)) {
+      if (thrusterTouchingEngineRoom(allParts, part)) {
         thrust *= 1.5;
       }
 
       if (part.ID === "cosmoteer.thruster_rocket_extender") {
-        for (const p2 of parts) {
+        for (const p2 of allParts) {
           if (p2.ID !== "cosmoteer.thruster_rocket_nozzle") continue;
           if (p2.Rotation !== part.Rotation) continue;
 
@@ -202,14 +206,19 @@ export function centerOfThrust(
         }
       }
 
-      thrustDirection[orientation] += thrust;
-      originThrust[orientation] = vAdd(
-        originThrust[orientation],
+      acc.thrustDirection[orientation] += thrust;
+      acc.originThrust[orientation] = vAdd(
+        acc.originThrust[orientation],
         vMul(origin, thrust)
       );
     }
   }
+}
 
+function finalizeThrust(
+  originThrust: Vec2[],
+  thrustDirection: number[]
+): { originThrust: Vec2[]; thrustVector: Vec2[]; thrustDirection: number[] } {
   for (let i = 0; i < 4; i++) {
     if (thrustDirection[i] === 0) continue;
     originThrust[i] = vDiv(originThrust[i], thrustDirection[i]);
@@ -223,6 +232,46 @@ export function centerOfThrust(
   ];
 
   return { originThrust, thrustVector, thrustDirection };
+}
+
+export function centerOfThrust(
+  parts: Part[],
+  boost: boolean
+): {
+  originThrust: Vec2[];
+  thrustVector: Vec2[];
+  thrustDirection: number[];
+} {
+  const originThrust: Vec2[] = [v(0, 0), v(0, 0), v(0, 0), v(0, 0)];
+  const thrustDirection = [0, 0, 0, 0];
+
+  accumulateThrust(parts, parts, boost, { originThrust, thrustDirection });
+
+  return finalizeThrust(originThrust, thrustDirection);
+}
+
+const THRUST_CHUNK = 200;
+
+export async function centerOfThrustAsync(
+  parts: Part[],
+  boost: boolean
+): Promise<{
+  originThrust: Vec2[];
+  thrustVector: Vec2[];
+  thrustDirection: number[];
+}> {
+  const originThrust: Vec2[] = [v(0, 0), v(0, 0), v(0, 0), v(0, 0)];
+  const thrustDirection = [0, 0, 0, 0];
+
+  for (let i = 0; i < parts.length; i += THRUST_CHUNK) {
+    accumulateThrust(parts.slice(i, i + THRUST_CHUNK), parts, boost, {
+      originThrust,
+      thrustDirection,
+    });
+    await yieldToScheduler();
+  }
+
+  return finalizeThrust(originThrust, thrustDirection);
 }
 
 interface DiagonalResult {
@@ -311,14 +360,16 @@ export interface ShipStats {
   flightDirection: number;
 }
 
-export function calculateShipStats(blueprintData: {
+const PARTS_CHUNK = 1500;
+
+function prepareParts(blueprintData: {
   Parts: Part[];
   PartUIToggleStates?: Array<{
     Key: [{ ID: string; Location: [number, number] }, string];
     Value: number;
   }>;
   FlightDirection: number;
-}): ShipStats {
+}): Part[] {
   let parts = blueprintData.Parts.map((p) => ({ ...p }));
 
   if (blueprintData.PartUIToggleStates) {
@@ -338,17 +389,70 @@ export function calculateShipStats(blueprintData: {
     }
   }
 
-  parts = parts.filter((p) => partPhysics[p.ID]);
+  return parts.filter((p) => partPhysics[p.ID]);
+}
 
-  const com = centerOfMass(parts);
-  const cot = centerOfThrust(parts, true);
+async function preparePartsAsync(blueprintData: {
+  Parts: Part[];
+  PartUIToggleStates?: Array<{
+    Key: [{ ID: string; Location: [number, number] }, string];
+    Value: number;
+  }>;
+  FlightDirection: number;
+}): Promise<Part[]> {
+  const parts: Part[] = [];
+  for (let i = 0; i < blueprintData.Parts.length; i += PARTS_CHUNK) {
+    for (const p of blueprintData.Parts.slice(i, i + PARTS_CHUNK)) {
+      parts.push({ ...p });
+    }
+    await yieldToScheduler();
+  }
+
+  if (blueprintData.PartUIToggleStates) {
+    const ocRefs = new Set<string>();
+    for (const entry of blueprintData.PartUIToggleStates) {
+      if (!entry.Key || entry.Key.length < 2) continue;
+      if (entry.Value !== 1 || entry.Key[1] !== "thermal_overclock") continue;
+      const ref = entry.Key[0];
+      if (ref && ref.ID && ref.Location) {
+        ocRefs.add(`${ref.ID}|${ref.Location[0]},${ref.Location[1]}`);
+      }
+    }
+    for (let i = 0; i < parts.length; i += PARTS_CHUNK) {
+      for (const part of parts.slice(i, i + PARTS_CHUNK)) {
+        if (ocRefs.has(`${part.ID}|${part.Location[0]},${part.Location[1]}`)) {
+          part.Overclock = 1;
+        }
+      }
+      await yieldToScheduler();
+    }
+  }
+
+  const filtered: Part[] = [];
+  for (let i = 0; i < parts.length; i += PARTS_CHUNK) {
+    for (const p of parts.slice(i, i + PARTS_CHUNK)) {
+      if (partPhysics[p.ID]) filtered.push(p);
+    }
+    await yieldToScheduler();
+  }
+
+  return filtered;
+}
+
+function buildShipStats(
+  com: { x: number; y: number; mass: number },
+  cot: {
+    originThrust: Vec2[];
+    thrustVector: Vec2[];
+    thrustDirection: number[];
+  },
+  fd: number
+): ShipStats {
   const dcot = diagonalCenterOfThrust(
     cot.originThrust,
     cot.thrustVector,
     cot.thrustDirection
   );
-
-  const fd = blueprintData.FlightDirection;
 
   // Calculate speeds from UNROTATED arrays (matches Python com() logic)
   const directions: Record<string, { speed: number; thrust: number }> = {};
@@ -380,4 +484,32 @@ export function calculateShipStats(blueprintData: {
     thrustDirection: thrustDirectionRotated,
     flightDirection: fd,
   };
+}
+
+export function calculateShipStats(blueprintData: {
+  Parts: Part[];
+  PartUIToggleStates?: Array<{
+    Key: [{ ID: string; Location: [number, number] }, string];
+    Value: number;
+  }>;
+  FlightDirection: number;
+}): ShipStats {
+  const parts = prepareParts(blueprintData);
+  const com = centerOfMass(parts);
+  const cot = centerOfThrust(parts, true);
+  return buildShipStats(com, cot, blueprintData.FlightDirection);
+}
+
+export async function calculateShipStatsAsync(blueprintData: {
+  Parts: Part[];
+  PartUIToggleStates?: Array<{
+    Key: [{ ID: string; Location: [number, number] }, string];
+    Value: number;
+  }>;
+  FlightDirection: number;
+}): Promise<ShipStats> {
+  const parts = await preparePartsAsync(blueprintData);
+  const com = centerOfMass(parts);
+  const cot = await centerOfThrustAsync(parts, true);
+  return buildShipStats(com, cot, blueprintData.FlightDirection);
 }

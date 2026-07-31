@@ -28,6 +28,7 @@ export default function UploadPanel() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<string | null>(null);
   const [uploadedShipId, setUploadedShipId] = useState<number | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [decoding, setDecoding] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateShip[]>([]);
@@ -46,6 +47,7 @@ export default function UploadPanel() {
     setPriceResult(null);
     setUploadResult(null);
     setUploadedShipId(null);
+    setSaveFailed(false);
     setDuplicates([]);
     setAckDuplicate(false);
     setUserTags([]);
@@ -111,7 +113,9 @@ export default function UploadPanel() {
         turnstileToken,
       });
       setUploadResult(url.ufsUrl);
-      setUploadedShipId(url.shipId?.shipId ?? null);
+      const shipId = url.shipId?.shipId ?? null;
+      setUploadedShipId(shipId);
+      setSaveFailed(shipId === null);
     } catch (err) {
       console.error("Upload error:", err);
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -128,6 +132,7 @@ export default function UploadPanel() {
     setDescription("");
     setUploadResult(null);
     setUploadedShipId(null);
+    setSaveFailed(false);
     setDuplicates([]);
     setAckDuplicate(false);
     setUserTags([]);
@@ -280,9 +285,15 @@ export default function UploadPanel() {
 
       {uploadResult && (
         <div className="text-center">
-          <p className="text-[#0AD448] text-xl mb-4">
-            Ship uploaded successfully!
-          </p>
+          {saveFailed ? (
+            <p className="text-red-400 text-xl mb-4">
+              Ship image uploaded, but failed to save to the library.
+            </p>
+          ) : (
+            <p className="text-[#0AD448] text-xl mb-4">
+              Ship uploaded successfully!
+            </p>
+          )}
           <div className="flex gap-2 justify-center flex-wrap">
             {uploadedShipId && (
               <Link
