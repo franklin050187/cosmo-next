@@ -29,18 +29,13 @@ export default function DecodePage() {
   const handleCalculate = async () => {
     if (!decodedData) return;
 
+    setError(null);
     try {
-      const res = await fetch("/api/price", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(decodedData),
-      });
-
-      if (!res.ok) throw new Error("Failed to calculate price");
-      const data = await res.json();
-      setPriceResult(data);
+      const { calculateShipPrice } = await import("@/lib/price");
+      const result = calculateShipPrice(
+        decodedData as Parameters<typeof calculateShipPrice>[0]
+      );
+      setPriceResult(result);
     } catch {
       setError("Failed to calculate price");
     }

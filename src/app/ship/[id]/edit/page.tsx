@@ -17,7 +17,7 @@ import { type ShipDetail, type PriceResponse } from "@/lib/types";
 export default function EditShipPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, hydrated } = useAuth();
   const [ship, setShip] = useState<ShipDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +37,8 @@ export default function EditShipPage() {
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
 
   useEffect(() => {
+    if (!hydrated) return;
+
     const fetchShip = async () => {
       if (!isLoggedIn) {
         router.push("/");
@@ -68,7 +70,7 @@ export default function EditShipPage() {
     };
 
     fetchShip();
-  }, [params.id, router, isLoggedIn, user?.username]);
+  }, [params.id, router, isLoggedIn, user?.username, hydrated]);
 
   const handleSave = async () => {
     if (!isLoggedIn) return;
@@ -148,7 +150,6 @@ export default function EditShipPage() {
         tags: userTags,
       });
 
-      router.refresh();
       router.push(`/ship/${ship.id}`);
     } catch (err) {
       console.error("Replace failed:", err);

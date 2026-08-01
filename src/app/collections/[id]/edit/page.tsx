@@ -17,7 +17,7 @@ import { trackEvent } from "@/lib/analytics-client";
 function EditCollectionContent() {
   const params = useParams();
   const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, hydrated } = useAuth();
   const [collection, setCollection] = useState<CollectionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -28,6 +28,8 @@ function EditCollectionContent() {
 
   useEffect(() => {
     let active = true;
+
+    if (!hydrated) return;
 
     if (!isLoggedIn) {
       router.push("/");
@@ -53,7 +55,7 @@ function EditCollectionContent() {
       .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
-  }, [params.id, router, isLoggedIn, user?.username]);
+  }, [params.id, router, isLoggedIn, user?.username, hydrated]);
 
   const handleSave = async () => {
     if (!title.trim() || !collection) return;
