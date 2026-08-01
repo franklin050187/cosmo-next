@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-
 interface Collection {
   id: number;
   title: string;
@@ -19,7 +18,7 @@ interface Props {
 }
 
 export default function CollectionPicker({ shipId, children, className }: Props) {
-  const { token } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [open, setOpen] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,13 +30,12 @@ export default function CollectionPicker({ shipId, children, className }: Props)
   const msgTimer = useRef<number | undefined>(undefined);
 
   const fetchCollections = useCallback(async (signal?: AbortSignal) => {
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     setLoading(true);
 
     try {
       const res = await fetch(`/api/collections/mine?shipId=${shipId}`, {
-        headers: { Authorization: `Bearer ${token}` },
         signal,
       });
       if (!res.ok) {
@@ -52,7 +50,7 @@ export default function CollectionPicker({ shipId, children, className }: Props)
     } finally {
       setLoading(false);
     }
-  }, [shipId, token]);
+  }, [shipId, isLoggedIn]);
 
   useEffect(() => {
     if (!open) return;
@@ -85,14 +83,13 @@ export default function CollectionPicker({ shipId, children, className }: Props)
   };
 
   const toggleShip = async (col: Collection) => {
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     setToggling(col.id);
     try {
       if (col.has_ship) {
         const res = await fetch(`/api/collections/${col.id}/ships/${shipId}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
         if (data.success) {
@@ -108,7 +105,6 @@ export default function CollectionPicker({ shipId, children, className }: Props)
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ shipId }),
         });

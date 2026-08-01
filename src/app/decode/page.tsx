@@ -4,10 +4,8 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { Ship } from "@/lib/cosmoShip";
-import { useAuth } from "@/hooks/useAuth";
 
 export default function DecodePage() {
-  const { token } = useAuth();
   const [decodedData, setDecodedData] = useState<object | null>(null);
   const [priceResult, setPriceResult] = useState<{ price: number; crew: number; author: string; tags: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +34,6 @@ export default function DecodePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(decodedData),
       });

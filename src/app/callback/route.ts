@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateUserToken, type UserPayload } from "@/lib/auth";
+import jwt from "jsonwebtoken";
+import { generateUserToken, type UserPayload, type TokenPayload } from "@/lib/auth";
+import { migrateUsernameOnLogin } from "@/lib/db";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -82,11 +84,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const discriminator = discordUser.discriminator && discordUser.discriminator !== "0"
-      ? `#${discordUser.discriminator}` : "";
+    const disc = typeof discordUser.discriminator === "string" ? discordUser.discriminator : "";
     const user: UserPayload = {
       id: discordUser.id,
-      username: `${discordUser.username}${discriminator}`,
+      // Always keep the legacy `username#discriminator` format (e.g. `poney5850#0`),
+      // matching the old app and ADMIN_USERNAMES, so admin checks and ownership work.
+      username: disc ? `${discordUser.username}#${disc}` : discordUser.username,
       avatar: discordUser.avatar
         ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
         : null,
@@ -94,6 +97,19 @@ export async function GET(req: NextRequest) {
     };
 
     const token = generateUserToken(user);
+
+    // Discord username-rename migration: detect a previous username from the
+    // old __session cookie (if present) and migrate owned ships/collections.
+    const prevSession = req.cookies.get("__session")?.value;
+    let prevUsername: string | null = null;
+    if (prevSession) {
+      try {
+        const decoded = jwt.verify(prevSession, process.env.JWT_SECRET!) as TokenPayload;
+        prevUsername = decoded?.user?.username ?? null;
+      } catch { /* old/expired cookie — ignore */ }
+    }
+
+    await migrateUsernameOnLogin(user.id, user.username, prevUsername ?? null, discordUser.username);
 
     // Clear OAuth cookies and set session cookie (never in URL — prevents token leakage)
     const res = NextResponse.redirect(`${clientUrl}${returnTo}`);

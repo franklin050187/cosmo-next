@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const payload = verifyRequest(req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const shipId = searchParams.get("shipId");
     const data = await getUserCollections(
-      payload.user.username,
+      user.username,
+      user.id,
       shipId ? parseInt(shipId, 10) || undefined : undefined,
     );
     return NextResponse.json(data);

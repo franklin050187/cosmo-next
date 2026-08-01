@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { type ShipRow } from "@/lib/db";
 import CollectionPicker from "@/components/collection/CollectionPicker";
 import { downloadShip } from "@/lib/download-ship";
+import { useAuth } from "@/hooks/useAuth";
 
 const DISPLAY_TAGS = [
   "cannon", "deck_cannon", "emp_missiles", "flak_battery",
@@ -25,11 +26,7 @@ function formatPrice(price: number): string {
 export default function ShipCard({ ship, priority = false }: { ship: ShipRow; priority?: boolean }) {
   const tags = (ship.tags ?? []).filter((t) => DISPLAY_TAGS.includes(t)).slice(0, 4);
   const [downloading, setDownloading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("token"));
-  }, []);
+  const { isLoggedIn } = useAuth();
 
   const saveBackUrl = () => {
     sessionStorage.setItem("shipBackUrl", window.location.pathname + window.location.search);

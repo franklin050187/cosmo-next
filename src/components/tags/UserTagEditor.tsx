@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TAG_CATEGORIES } from "@/lib/user-tag-data";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   value: string[];
@@ -14,19 +15,8 @@ export default function UserTagEditor({ value, onChange, brand, onBrandChange }:
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
     () => Object.fromEntries(TAG_CATEGORIES.map((c) => [c.id, false]))
   );
-  const [isExcelsiorMember, setIsExcelsiorMember] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("token");
-    if (stored) {
-      try {
-        const payload = JSON.parse(atob(stored.split(".")[1]));
-        if (payload.user?.guild === "exl") {
-          setIsExcelsiorMember(true);
-        }
-      } catch (e) { console.error("Failed to decode token:", e); }
-    }
-  }, []);
+  const { user } = useAuth();
+  const isExcelsiorMember = user?.guild === "exl";
 
   const toggle = (v: string, type: "radio" | "checkbox", group?: string) => {
     if (type === "radio") {

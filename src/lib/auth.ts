@@ -20,43 +20,33 @@ export interface TokenPayload {
   user?: UserPayload;
 }
 
-export function generateToken(): string {
-  return jwt.sign({ app: "cosmo-client" }, getJwtSecret(), {
-    expiresIn: TOKEN_EXPIRY,
-  });
-}
-
 export function generateUserToken(user: UserPayload): string {
   return jwt.sign({ user }, getJwtSecret(), { expiresIn: TOKEN_EXPIRY });
-}
-
-export function isTokenExpired(token: string): boolean {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    const payload = JSON.parse(atob(parts[1]));
-    if (typeof payload.exp !== "number") return true;
-    return payload.exp * 1000 < Date.now();
-  } catch {
-    return true;
-  }
 }
 
 export function verifyToken(token: string): TokenPayload {
   return jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] }) as TokenPayload;
 }
 
-export function getTokenFromRequest(req: Request): string | null {
-  const header = req.headers.get("authorization");
-  if (!header?.startsWith("Bearer ")) return null;
-  return header.slice(7);
+export function getSessionTokenFromRequest(req: Request): string | null {
+  const cookie = req.headers.get("cookie");
+  if (!cookie) return null;
+  for (const part of cookie.split(";")) {
+    const idx = part.indexOf("=");
+    if (idx === -1) continue;
+    if (part.slice(0, idx).trim() === "__session") {
+      return decodeURIComponent(part.slice(idx + 1).trim());
+    }
+  }
+  return null;
 }
 
-export function verifyRequest(req: Request): TokenPayload | null {
-  const token = getTokenFromRequest(req);
+export function getUserFromRequest(req: Request): UserPayload | null {
+  const token = getSessionTokenFromRequest(req);
   if (!token) return null;
   try {
-    return verifyToken(token);
+    const payload = verifyToken(token);
+    return payload.user ?? null;
   } catch {
     return null;
   }

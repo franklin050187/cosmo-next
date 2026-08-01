@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImageData, deleteShip } from "@/lib/db";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { UTApi } from "uploadthing/server";
 
 export async function GET(
@@ -30,8 +30,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const payload = verifyRequest(req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -52,16 +52,17 @@ export async function PUT(
     if (!ship) {
       return NextResponse.json({ error: "Ship not found" }, { status: 404 });
     }
-    if (ship.submitted_by !== payload.user.username) {
+    const { isShipOwner, updateShip } = await import("@/lib/db");
+    if (!isShipOwner(ship, { id: user.id, username: user.username })) {
       return NextResponse.json({ error: "Not the owner" }, { status: 403 });
     }
 
-    const { updateShip } = await import("@/lib/db");
     await updateShip({
       id: shipId,
       name: body.name ?? ship.name,
       data: body.data ?? ship.data,
-      submittedBy: payload.user.username,
+      submittedBy: user.username,
+      submittedById: user.id,
       description: body.description ?? ship.description,
       shipName: body.ship_name ?? ship.ship_name,
       author: body.author ?? ship.author,
@@ -81,8 +82,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const payload = verifyRequest(req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -93,7 +94,7 @@ export async function DELETE(
   }
 
   try {
-    const result = await deleteShip(shipId, payload.user.username);
+    const result = await deleteShip(shipId, { id: user.id, username: user.username });
     if ("error" in result) {
       return NextResponse.json(result, { status: 403 });
     }

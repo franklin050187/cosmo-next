@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateShipPrice } from "@/lib/price";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const payload = verifyRequest(req);
-  if (!payload) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

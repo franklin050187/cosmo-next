@@ -4,6 +4,77 @@ const PAGE_SIZE = 24;
 
 const sanitizeText = (s: string) => s.replace(/\u0000/g, "");
 
+const SUPABASE_CA = `-----BEGIN CERTIFICATE-----
+MIID5jCCAs6gAwIBAgIUecmTKYbqO5NLdhTHbdxW6e8/x0wwDQYJKoZIhvcNAQEL
+BQAwczELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
+dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEmMCQGA1UEAwwdU3VwYWJh
+c2UgSW50ZXJtZWRpYXRlIDIwMjEgQ0EwHhcNMjUwMzEyMTU1NjMzWhcNMzAwMzEx
+MTU1NjMzWjBrMQswCQYDVQQGEwJVUzEQMA4GA1UECAwHRGVsd2FyZTETMBEGA1UE
+BwwKTmV3IENhc3RsZTEVMBMGA1UECgwMU3VwYWJhc2UgSW5jMR4wHAYDVQQDDBUq
+LnBvb2xlci5zdXBhYmFzZS5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+AoIBAQC7m1IrJFRAESxSs16T65DLluFJ5qyr//Xs6Bh/lJDPZjWwJWkPAOuudZcz
+S5O3i+PR9ZGNtZZbGyqJHWriJtuo7OLc+yuZ3iTj4Rv09w5yZlghBE+8f+6aszDn
+uEHQi1mk9FKQDljpJhsajZ/4hEDfcMrRUNdzDdZaRgRlssAWEsG5iybt3+DqKBp6
+mE5Ume0QXGo+GLtTT3rZYxchieZOa9GF1gb/DtoQ+Z3YUL+qU+fqKVHUtKyoIQAj
+HLRlRuMBlQiiMVBspSHHOny7K3fybcFh2tP+HYgKzlEItrW1lRCWg5F/BHQsjpWZ
+fKrsQaAdRaih4rQI4rDdQfV1oMBdAgMBAAGjejB4MDYGA1UdEQQvMC2CFSoucG9v
+bGVyLnN1cGFiYXNlLmNvbYIUKi5wb29sZXIuc3VwYWJhc2UuY28wHQYDVR0OBBYE
+FDJ28o4g7/iN/qmYDQXmrVq/tRo+MB8GA1UdIwQYMBaAFBWgUy69cn1i/5Amvr8Y
+lfRnRUD6MA0GCSqGSIb3DQEBCwUAA4IBAQB7ohHbVT/opJsxXOdcE6hkucyAEK0C
+rK/SH+K19Lq/03RCVAJUYi6PNSDvdl2SAWCQOQzvFssQKyuXp7hC9pAam6NBb8Qm
+QqfdD67tsaiBeKcLIoLOJXcq9eKMyGxmf60QMztknvUvswiBpPh/ItnUCNCIoSTc
+JXBmsBhNRJJfrvXaPnEWU8lxgR1/ieGP0rLLhExjr4IFB0/qXIfk2nPOHRsaeg9H
+9x9LtLzTAGunPGG5bs8gfF6AwbU8WpJ2SRN2ZhBilUt5Evdq4LczAy/PgEfDGRNI
+DnVn+3LfVtaJ04p1qFPoDiC9hoHK/EEd1cqJl+dXFV/8ZfJs9E5HoEDK
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDvzCCAqegAwIBAgIUBhalAwMQ7BA1NH7td4msPPwxHzowDQYJKoZIhvcNAQEL
+BQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
+dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh
+c2UgUm9vdCAyMDIxIENBMB4XDTIzMTAyNDA3NTM0NVoXDTMzMTAyMTA3NTM0NVow
+czELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD
+YXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEmMCQGA1UEAwwdU3VwYWJhc2Ug
+SW50ZXJtZWRpYXRlIDIwMjEgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+AoIBAQDOAMhXirH+EGIn8GaDp8T53rEogf7kM8OKW2uQ5yU/wxPa+w8BXgTzWy3W
+JDAUhZE78oUtAd9kk5zKPrLXoT3W61PPnOc/9dceL5gB7/78m7EKCySziAA2c8vR
+fnYPfznedDXi2lryttSYmMf2qbZDErAxwJDUm6cyq+HLAfb2qUH28u6jP8I9GDtG
+PkQnjqtiRXEKjbTc/ntqCQrhtFK02mHkMSju7nEpkNYryunv5n/c9mrRY9/8GwmP
+3uSZz3CQ8yQ/E0f8T9gCca2TcKuTQmW2pQqtHv1MuZ3jfJE5Nr9+Fap5kdzDJtdf
+BdKofVNZlnYIru5yhUZywY3xYFfHAgMBAAGjUzBRMB0GA1UdDgQWBBQVoFMuvXJ9
+Yv+QJr6/GJX0Z0VA+jAfBgNVHSMEGDAWgBSo17l2N9gs7ZISJp4OMiTVLWlGLDAP
+BgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAwdx0XJRHTf/crGpsr
+n07uRziGSswWWTe+kDATMQeRZAEW3grVki5LDzs+JLbVIJYhRXFRXkqTRJdSGAgH
+/0LNw7GDUwKOLnIRoYR3ILqSFZbkXbrYQ4Yir5yQZWgiNhRNfpEnMMIEQEZoSuFn
+8Uh6M4HNfVuwBPgV0/gvKEja3DjJgwPAYzoXvKh5m3fKTt2c22YcTDdZTUDfrst6
+Vpt/M03FY6D+897yfNR+nEzeEwjzHMZkperTwVfmBdyXIgIWexQ/whoky7+I4pjz
+eLtkPBlwE3WB9fGZVjZqdUNSasS8mmWIyxHPttTzTHHmElDw2OQ/s9HjfCxJztk2
+VCgJ
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL
+BQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
+dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh
+c2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow
+azELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD
+YXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug
+Um9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW
+QyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q
+DmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2
+GtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi
+cvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4
+O4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt
+NaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX
+uXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt
+aUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU
+tVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b
+VW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6
+jB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx
+Cea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2
+CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
+o/bKiIz+Fq8=
+-----END CERTIFICATE-----
+`;
+
 let pool: pg.Pool | null = null;
 
 function getPool(): pg.Pool {
@@ -21,7 +92,10 @@ function getPool(): pg.Pool {
       database,
       user,
       password,
-      ssl: { rejectUnauthorized: false },
+      ssl: {
+        rejectUnauthorized: true,
+        ca: process.env.POSTGRES_CA ?? SUPABASE_CA,
+      },
       max: 10,
     });
     pool.on("error", (err) => {
@@ -86,6 +160,7 @@ export interface ShipRow {
   name: string;
   data: string;
   submitted_by: string;
+  discord_id: string | null;
   description: string;
   ship_name: string;
   author: string;
@@ -98,12 +173,35 @@ export interface ShipRow {
   date: string;
 }
 
-export async function getImageData(shipId: number): Promise<ShipRow | null> {
-  return fetchOne("SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = $1", [shipId]);
+export interface CollectionRow {
+  id: number;
+  owner: string;
+  discord_id: string | null;
+  title: string;
+  description: string;
+  ships: number[];
+  created_at: string;
 }
 
-export async function getMyShips(user: string) {
-  const data = await fetchAll("SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE submitted_by = $1", [user]);
+export function isShipOwner(row: Pick<ShipRow, "discord_id" | "submitted_by">, { id, username }: { id: string; username: string }): boolean {
+  if (row.discord_id) return row.discord_id === id;
+  return row.submitted_by === username;
+}
+
+export function isCollectionOwner(row: Pick<CollectionRow, "discord_id" | "owner">, { id, username }: { id: string; username: string }): boolean {
+  if (row.discord_id) return row.discord_id === id;
+  return row.owner === username;
+}
+
+export async function getImageData(shipId: number): Promise<ShipRow | null> {
+  return fetchOne("SELECT id, name, data, submitted_by, discord_id, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = $1", [shipId]);
+}
+
+export async function getMyShips(user: string, userId: string) {
+  const data = await fetchAll(
+    "SELECT id, name, data, submitted_by, discord_id, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE discord_id = $1 OR submitted_by = $2",
+    [userId, user],
+  );
   return { data, page: 1, max_page: 1 };
 }
 
@@ -111,16 +209,16 @@ export async function updateDownloads(shipId: number) {
   await query("UPDATE shipdb SET downloads = downloads + 1 WHERE id = $1", [shipId]);
 }
 
-export async function deleteShip(shipId: number, user: string) {
+export async function deleteShip(shipId: number, user: { id: string; username: string }) {
   return transaction(async (client) => {
-    const row = await fetchOneOnClient(client, "SELECT submitted_by, data FROM shipdb WHERE id = $1", [shipId]);
-    if (!row || user !== row.submitted_by) return { error: "not the owner" };
+    const row = await fetchOneOnClient(client, "SELECT submitted_by, discord_id, data FROM shipdb WHERE id = $1", [shipId]);
+    if (!row || !isShipOwner(row, user)) return { error: "not the owner" };
 
     await queryOnClient(client, "UPDATE collections SET ships = array_remove(ships, $1) WHERE $1 = ANY(ships)", [shipId]);
     await queryOnClient(client, "UPDATE favoritedb SET favorite = array_remove(favorite, $1) WHERE $1 = ANY(favorite)", [shipId]);
     await queryOnClient(client, "DELETE FROM favoritedb WHERE array_length(favorite, 1) IS NULL", []);
     await queryOnClient(client, "DELETE FROM ship_signatures WHERE ship_id = $1", [shipId]);
-    await queryOnClient(client, "DELETE FROM shipdb WHERE id = $1 AND submitted_by = $2", [shipId, user]);
+    await queryOnClient(client, "DELETE FROM shipdb WHERE id = $1 AND (discord_id = $2 OR submitted_by = $3)", [shipId, user.id, user.username]);
     return { success: `ship ${shipId} deleted`, data: row.data };
   });
 }
@@ -129,6 +227,7 @@ export async function insertShip({
   name,
   data,
   submittedBy,
+  submittedById,
   description,
   shipName,
   author,
@@ -141,6 +240,7 @@ export async function insertShip({
   name: string;
   data: string;
   submittedBy: string;
+  submittedById?: string | null;
   description: string;
   shipName: string;
   author: string;
@@ -153,12 +253,13 @@ export async function insertShip({
   return transaction(async (client) => {
     const { rows } = await queryOnClient(
       client,
-      `INSERT INTO shipdb (name, data, submitted_by, description, ship_name, author, price, brand, crew, tags)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::text[]) RETURNING id`,
+      `INSERT INTO shipdb (name, data, submitted_by, discord_id, description, ship_name, author, price, brand, crew, tags)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::text[]) RETURNING id`,
       [
         sanitizeText(name),
         data,
         sanitizeText(submittedBy),
+        submittedById ?? null,
         sanitizeText(description),
         sanitizeText(shipName),
         sanitizeText(author),
@@ -185,6 +286,7 @@ export async function updateShip({
   name,
   data,
   submittedBy,
+  submittedById,
   description,
   shipName,
   author,
@@ -198,6 +300,7 @@ export async function updateShip({
   name: string;
   data: string;
   submittedBy: string;
+  submittedById?: string | null;
   description: string;
   shipName: string;
   author: string;
@@ -210,12 +313,13 @@ export async function updateShip({
   return transaction(async (client) => {
     await queryOnClient(
       client,
-      `UPDATE shipdb SET name=$1, data=$2, submitted_by=$3, description=$4, ship_name=$5,
-       author=$6, price=$7, brand=$8, crew=$9, tags=$10::text[] WHERE id=$11`,
+      `UPDATE shipdb SET name=$1, data=$2, submitted_by=$3, discord_id=$4, description=$5, ship_name=$6,
+       author=$7, price=$8, brand=$9, crew=$10, tags=$11::text[] WHERE id=$12`,
       [
         sanitizeText(name),
         data,
         sanitizeText(submittedBy),
+        submittedById ?? null,
         sanitizeText(description),
         sanitizeText(shipName),
         sanitizeText(author),
@@ -240,41 +344,41 @@ export async function updateShip({
 
 // ── Favorites ──────────────────────────────────────────────────────
 
-export async function getMyFavorites(user: string) {
+export async function getMyFavorites(user: string, userId: string) {
   const data = await fetchAll(
-    "SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = ANY (SELECT UNNEST(favorite) FROM favoritedb WHERE name = $1)",
-    [user],
+    "SELECT id, name, data, submitted_by, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = ANY (SELECT UNNEST(favorite) FROM favoritedb WHERE discord_id = $1 OR name = $2)",
+    [userId, user],
   );
   return { data, page: 1, max_page: 1 };
 }
 
-export async function addToFavorites(user: string, shipId: number) {
+export async function addToFavorites(user: string, userId: string, shipId: number) {
   return transaction(async (client) => {
-    const row = await fetchOneOnClient(client, "SELECT favorite FROM favoritedb WHERE name = $1 FOR UPDATE", [user]);
+    const row = await fetchOneOnClient(client, "SELECT favorite FROM favoritedb WHERE discord_id = $1 OR name = $2 FOR UPDATE", [userId, user]);
     if (!row) {
-      await queryOnClient(client, "INSERT INTO favoritedb (name, favorite) VALUES ($1, $2::int[])", [user, [shipId]]);
+      await queryOnClient(client, "INSERT INTO favoritedb (name, discord_id, favorite) VALUES ($1, $2, $3::int[])", [user, userId, [shipId]]);
     } else if (row.favorite.includes(shipId)) {
       return { warning: "already in favorites" };
     } else {
-      await queryOnClient(client, "UPDATE favoritedb SET favorite = favorite || $1::int[] WHERE name = $2", [[shipId], user]);
+      await queryOnClient(client, "UPDATE favoritedb SET favorite = favorite || $1::int[] WHERE discord_id = $2 OR name = $3", [[shipId], userId, user]);
     }
     await queryOnClient(client, "UPDATE shipdb SET fav = fav + 1 WHERE id = $1", [shipId]);
     return { success: "favorited" };
   });
 }
 
-export async function deleteFromFavorites(user: string, shipId: number) {
+export async function deleteFromFavorites(user: string, userId: string, shipId: number) {
   return transaction(async (client) => {
-    const row = await fetchOneOnClient(client, "SELECT favorite FROM favoritedb WHERE name = $1 FOR UPDATE", [user]);
+    const row = await fetchOneOnClient(client, "SELECT favorite FROM favoritedb WHERE discord_id = $1 OR name = $2 FOR UPDATE", [userId, user]);
     if (!row) return { warning: "not in favorites" };
     const favorites: number[] = row.favorite;
     const idx = favorites.indexOf(shipId);
     if (idx === -1) return { warning: "not in favorites" };
-    favorites.splice(idx, 1);
+    favorites.splice(idx);
     if (favorites.length === 0) {
-      await queryOnClient(client, "DELETE FROM favoritedb WHERE name = $1", [user]);
+      await queryOnClient(client, "DELETE FROM favoritedb WHERE discord_id = $1 OR name = $2", [userId, user]);
     } else {
-      await queryOnClient(client, "UPDATE favoritedb SET favorite = $1::int[] WHERE name = $2", [favorites, user]);
+      await queryOnClient(client, "UPDATE favoritedb SET favorite = $1::int[] WHERE discord_id = $2 OR name = $3", [favorites, userId, user]);
     }
     await queryOnClient(client, "UPDATE shipdb SET fav = fav - 1 WHERE id = $1", [shipId]);
     return { success: "unfavorited" };
@@ -286,22 +390,23 @@ export async function deleteFromFavorites(user: string, shipId: number) {
 export interface CollectionRow {
   id: number;
   owner: string;
+  discord_id: string | null;
   title: string;
   description: string;
   ships: number[];
   created_at: string;
 }
 
-export async function createCollection(owner: string, title: string, description: string) {
+export async function createCollection(owner: string, ownerId: string, title: string, description: string) {
   const { rows } = await query(
-    "INSERT INTO collections (owner, title, description) VALUES ($1, $2, $3) RETURNING id",
-    [owner, title, description],
+    "INSERT INTO collections (owner, discord_id, title, description) VALUES ($1, $2, $3, $4) RETURNING id",
+    [owner, ownerId, title, description],
   );
   return { id: rows[0].id };
 }
 
 export async function getCollection(id: number) {
-  const col = await fetchOne("SELECT id, owner, title, description, ships, created_at FROM collections WHERE id = $1", [id]);
+  const col = await fetchOne("SELECT id, owner, discord_id, title, description, ships, created_at FROM collections WHERE id = $1", [id]);
   if (!col) return null;
   const ships =
     col.ships?.length > 0
@@ -313,12 +418,12 @@ export async function getCollection(id: number) {
   return { ...col, ships };
 }
 
-export async function getUserCollections(owner: string, shipId?: number) {
+export async function getUserCollections(owner: string, ownerId: string, shipId?: number) {
   const rows = await fetchAll(
-    `SELECT id, owner, title, description, array_length(ships, 1) AS ship_count, created_at${
-      shipId ? ", $2 = ANY(ships) AS has_ship" : ""
-    } FROM collections WHERE owner = $1 ORDER BY created_at DESC`,
-    shipId ? [owner, shipId] : [owner],
+    `SELECT id, owner, discord_id, title, description, array_length(ships, 1) AS ship_count, created_at${
+      shipId ? ", $3 = ANY(ships) AS has_ship" : ""
+    } FROM collections WHERE discord_id = $1 OR owner = $2 ORDER BY created_at DESC`,
+    shipId ? [ownerId, owner, shipId] : [ownerId, owner],
   );
   return rows;
 }
@@ -338,11 +443,12 @@ export async function getAllCollections(page = 1) {
 export async function updateCollection(
   id: number,
   owner: string,
+  ownerId: string,
   fields: { title?: string; description?: string },
 ) {
-  const col = await fetchOne("SELECT owner FROM collections WHERE id = $1", [id]);
+  const col = await fetchOne("SELECT owner, discord_id FROM collections WHERE id = $1", [id]);
   if (!col) return { error: "not found" };
-  if (col.owner !== owner) return { error: "not the owner" };
+  if (!isCollectionOwner(col, { id: ownerId, username: owner })) return { error: "not the owner" };
   const sets: string[] = [];
   const args: unknown[] = [];
   let idx = 1;
@@ -360,20 +466,20 @@ export async function updateCollection(
   return { success: "collection updated" };
 }
 
-export async function deleteCollection(id: number, owner: string) {
-  const col = await fetchOne("SELECT owner FROM collections WHERE id = $1", [id]);
+export async function deleteCollection(id: number, owner: string, ownerId: string) {
+  const col = await fetchOne("SELECT owner, discord_id FROM collections WHERE id = $1", [id]);
   if (!col) return { error: "not found" };
-  if (col.owner !== owner) return { error: "not the owner" };
-  await query("DELETE FROM collections WHERE id = $1", [id]);
+  if (!isCollectionOwner(col, { id: ownerId, username: owner })) return { error: "not the owner" };
+  await query("DELETE FROM collections WHERE id = $1 AND (discord_id = $2 OR owner = $3)", [id, ownerId, owner]);
   return { success: "collection deleted" };
 }
 
-export async function addShipToCollection(collectionId: number, shipId: number, owner: string) {
-  const col = await fetchOne("SELECT owner, ships FROM collections WHERE id = $1", [collectionId]);
+export async function addShipToCollection(collectionId: number, shipId: number, owner: string, ownerId: string) {
+  const col = await fetchOne("SELECT owner, discord_id, ships FROM collections WHERE id = $1", [collectionId]);
   if (!col) return { error: "not found" };
-  if (col.owner !== owner) return { error: "not the owner" };
+  if (!isCollectionOwner(col, { id: ownerId, username: owner })) return { error: "not the owner" };
   if (col.ships?.includes(shipId)) return { warning: "ship already in collection" };
-  await query("UPDATE collections SET ships = COALESCE(ships, '{}') || $1::int[] WHERE id = $2", [[shipId], collectionId]);
+  await query("UPDATE collections SET ships = COALESCE(ships, '{}') || $1::int[] WHERE id = $2 AND (discord_id = $3 OR owner = $4)", [[shipId], collectionId, ownerId, owner]);
   return { success: "ship added" };
 }
 
@@ -381,14 +487,17 @@ export async function removeShipFromCollection(
   collectionId: number,
   shipId: number,
   owner: string,
+  ownerId: string,
 ) {
-  const col = await fetchOne("SELECT owner, ships FROM collections WHERE id = $1", [collectionId]);
+  const col = await fetchOne("SELECT owner, discord_id, ships FROM collections WHERE id = $1", [collectionId]);
   if (!col) return { error: "not found" };
-  if (col.owner !== owner) return { error: "not the owner" };
+  if (!isCollectionOwner(col, { id: ownerId, username: owner })) return { error: "not the owner" };
   if (!col.ships?.includes(shipId)) return { warning: "ship not in collection" };
-  await query("UPDATE collections SET ships = array_remove(ships, $1) WHERE id = $2", [
+  await query("UPDATE collections SET ships = array_remove(ships, $1) WHERE id = $2 AND (discord_id = $3 OR owner = $4)", [
     shipId,
     collectionId,
+    ownerId,
+    owner,
   ]);
   return { success: "ship removed" };
 }
@@ -398,6 +507,61 @@ export async function getCollectionsForShip(shipId: number) {
     "SELECT id, owner, title, description FROM collections WHERE $1 = ANY(ships)",
     [shipId],
   );
+}
+
+export type UserFromRequest = { id: string; username: string };
+
+/**
+ * Runs on every OAuth login to migrate records left under an old Discord username.
+ *
+ * (A) Adopt legacy rows matching any candidate name (`username#disc`, the bare
+ *     pre-`discord_id` form, and the previous cookie username) that are not yet
+ *     linked by `discord_id` — repairs rows orphaned by the old app's
+ *     `username#discriminator` format or a rename. Rows already linked to a
+ *     different Discord account are never touched.
+ * (B) Refresh the current username on rows already anchored to this Discord ID,
+ *     so `submitted_by`/`owner`/`name` stay current after a rename.
+ */
+export async function migrateUsernameOnLogin(
+  userId: string,
+  newUsername: string,
+  prevUsername: string | null,
+  bareUsername: string,
+) {
+  const candidates = [...new Set([newUsername, bareUsername, prevUsername].filter(Boolean))] as string[];
+
+  await transaction(async (client) => {
+    await queryOnClient(
+      client,
+      "UPDATE shipdb SET submitted_by = $1, discord_id = $2 WHERE discord_id IS NULL AND submitted_by = ANY($3::text[])",
+      [newUsername, userId, candidates],
+    );
+    await queryOnClient(
+      client,
+      "UPDATE collections SET owner = $1, discord_id = $2 WHERE discord_id IS NULL AND owner = ANY($3::text[])",
+      [newUsername, userId, candidates],
+    );
+    await queryOnClient(
+      client,
+      "UPDATE favoritedb SET name = $1, discord_id = $2 WHERE discord_id IS NULL AND name = ANY($3::text[])",
+      [newUsername, userId, candidates],
+    );
+    await queryOnClient(
+      client,
+      "UPDATE shipdb SET submitted_by = $1 WHERE discord_id = $2 AND submitted_by <> $1",
+      [newUsername, userId],
+    );
+    await queryOnClient(
+      client,
+      "UPDATE collections SET owner = $1 WHERE discord_id = $2 AND owner <> $1",
+      [newUsername, userId],
+    );
+    await queryOnClient(
+      client,
+      "UPDATE favoritedb SET name = $1 WHERE discord_id = $2 AND name <> $1",
+      [newUsername, userId],
+    );
+  });
 }
 
 // ── Search ─────────────────────────────────────────────────────────

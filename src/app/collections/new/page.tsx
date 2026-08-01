@@ -8,11 +8,9 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics-client";
 
 function NewCollectionContent() {
-  const { token } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -32,8 +30,6 @@ function NewCollectionContent() {
       return;
     }
 
-    if (!token) return;
-
     setSaving(true);
     setError(null);
     try {
@@ -41,7 +37,6 @@ function NewCollectionContent() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ title: title.trim(), description: description.trim(), "cf-turnstile-response": turnstileToken }),
       });

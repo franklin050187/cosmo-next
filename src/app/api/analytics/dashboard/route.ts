@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDashboardData } from "@/lib/analytics-db";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { verifyTurnstileToken, getTurnstileTokenFromReq } from "@/lib/turnstile";
 
 const ADMIN_USERNAMES = (process.env.ADMIN_USERNAMES || "")
@@ -9,8 +9,8 @@ const ADMIN_USERNAMES = (process.env.ADMIN_USERNAMES || "")
   .filter(Boolean);
 
 export async function GET(req: NextRequest) {
-  const payload = verifyRequest(req);
-  if (!payload?.user || !ADMIN_USERNAMES.includes(payload.user.username)) {
+  const user = getUserFromRequest(req);
+  if (!user || !ADMIN_USERNAMES.includes(user.username)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 403 });
   }
 

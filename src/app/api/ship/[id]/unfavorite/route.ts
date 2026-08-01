@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteFromFavorites } from "@/lib/db";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const payload = verifyRequest(req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,7 +18,7 @@ export async function POST(
   }
 
   try {
-    await deleteFromFavorites(payload.user.username, shipId);
+    await deleteFromFavorites(user.username, user.id, shipId);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("ship/[id]/unfavorite error:", err);

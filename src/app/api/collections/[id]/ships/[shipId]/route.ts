@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; shipId: string }> },
 ) {
-  const payload = verifyRequest(_req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -22,7 +22,8 @@ export async function DELETE(
     const result = await removeShipFromCollection(
       collectionId,
       shipIdNum,
-      payload.user.username,
+      user.username,
+      user.id,
     );
 
     if ("error" in result) {

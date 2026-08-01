@@ -1,98 +1,60 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isTokenExpired } from "@/lib/auth";
 
 export interface User {
   username: string;
   avatar: string | null;
+  guild?: string;
 }
 
 export interface UseAuthReturn {
-  token: string | null;
   user: User | null;
   isLoggedIn: boolean;
   hydrated: boolean;
   logout: () => void;
 }
 
-function initToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const t = localStorage.getItem("token");
-  if (t && !isTokenExpired(t)) return t;
-  return null;
-}
+let sessionPromise: Promise<User | null> | null = null;
 
-function initUser(token: string | null): User | null {
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.user ?? null;
-  } catch {
-    return null;
+function fetchSession(): Promise<User | null> {
+  if (!sessionPromise) {
+    sessionPromise = fetch("/api/auth/session")
+      .then((r) => (r.ok ? r.json() : { user: null }))
+      .then((d: { user: User | null }) => d.user ?? null)
+      .catch(() => null)
+      .finally(() => {
+        sessionPromise = null;
+      });
   }
+  return sessionPromise;
 }
 
 export function useAuth(): UseAuthReturn {
-  const [token, setToken] = useState<string | null>(initToken);
-  const [user, setUser] = useState<User | null>(() => initUser(initToken()));
+  const [user, setUser] = useState<User | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setHydrated(true);
-    const sessionCookie = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("__session="));
-    if (sessionCookie) {
-      const t = sessionCookie.split("=")[1];
-      if (t) {
-        localStorage.setItem("token", t);
-        document.cookie = "__session=; path=/; max-age=0";
+    let active = true;
+    fetchSession().then((u) => {
+      if (active) {
+        setUser(u);
+        setHydrated(true);
       }
-    }
-
-    const stored = localStorage.getItem("token");
-    if (stored) {
-      if (isTokenExpired(stored)) {
-        localStorage.removeItem("token");
-      } else {
-        setToken(stored);
-        try {
-          const payload = JSON.parse(atob(stored.split(".")[1]));
-          if (payload.user) {
-            setUser(payload.user);
-          }
-        } catch {
-          localStorage.removeItem("token");
-        }
-      }
-    }
-
-    const handler = (e: StorageEvent) => {
-      if (e.key === "token") {
-        if (e.newValue) {
-          setToken(e.newValue);
-          try {
-            const payload = JSON.parse(atob(e.newValue.split(".")[1]));
-            setUser(payload.user ?? null);
-          } catch {
-            setUser(null);
-          }
-        } else {
-          setToken(null);
-          setUser(null);
-        }
-      }
+    });
+    return () => {
+      active = false;
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    setToken(null);
+  const logout = useCallback(async () => {
     setUser(null);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // cookie already cleared client-side state; navigation will follow
+    }
   }, []);
 
-  return { token, user, isLoggedIn: !!token, hydrated, logout };
+  return { user, isLoggedIn: !!user, hydrated, logout };
 }

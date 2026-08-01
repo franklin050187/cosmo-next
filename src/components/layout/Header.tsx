@@ -5,11 +5,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
-interface User {
-  username: string;
-  avatar: string | null;
-}
-
 const NAV_LINKS = [
   { href: "/", label: "Ships" },
   { href: "/collections", label: "Collections" },
@@ -41,20 +36,18 @@ export default function Header() {
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const { user, token, hydrated, logout } = useAuth();
+  const { user, hydrated, logout } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
-    fetch("/api/auth/is-admin", {
-      headers: { authorization: `Bearer ${token}` },
-    })
+    if (!user) return;
+    fetch("/api/auth/is-admin")
       .then((r) => r.json())
       .then((d: { isAdmin: boolean }) => setIsAdmin(d.isAdmin))
       .catch(() => setIsAdmin(false));
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     const error = new URLSearchParams(window.location.search).get("auth_error");
@@ -94,8 +87,8 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handler);
   }, [userMenuOpen]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setUserMenuOpen(false);
     setMenuOpen(false);
     window.location.href = "/";

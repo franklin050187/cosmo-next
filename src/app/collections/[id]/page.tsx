@@ -15,7 +15,7 @@ import { formatDate } from "@/lib/format-date";
 export default function CollectionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [collection, setCollection] = useState<CollectionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
@@ -50,13 +50,12 @@ export default function CollectionDetailPage() {
   }, [params.id, user?.username]);
 
   const handleRemove = async (shipId: number) => {
-    if (!token || !collection) return;
+    if (!isLoggedIn || !collection) return;
 
     setRemoving(shipId);
     try {
       await fetch(`/api/collections/${collection.id}/ships/${shipId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       setCollection({
         ...collection,
@@ -72,12 +71,11 @@ export default function CollectionDetailPage() {
 
   const handleDelete = async () => {
     if (!confirm("Delete this collection?")) return;
-    if (!token || !collection) return;
+    if (!isLoggedIn || !collection) return;
 
     try {
       await fetch(`/api/collections/${collection.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       trackEvent("collection_delete");
       router.push("/my-collections");

@@ -9,7 +9,6 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 import type { TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { useAuth } from "@/hooks/useAuth";
 import { Ship } from "@/lib/cosmoShip";
 import { type PriceResponse } from "@/lib/types";
 
@@ -20,7 +19,6 @@ interface DuplicateShip {
 }
 
 export default function UploadPanel() {
-  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [priceResult, setPriceResult] = useState<PriceResponse | null>(null);
@@ -106,7 +104,6 @@ export default function UploadPanel() {
       const { uploadFiles } = await import("@/lib/upload-png");
       const [url] = await uploadFiles({
         files: [file],
-        token: token ?? undefined,
         description,
         brand,
         tags: userTags.length > 0 ? userTags : undefined,

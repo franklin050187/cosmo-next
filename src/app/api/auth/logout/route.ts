@@ -5,3 +5,9 @@ export async function GET() {
   response.cookies.delete("__session");
   return response;
 }
+
+export async function POST() {
+  const response = NextResponse.json({ ok: true });
+  response.cookies.delete("__session");
+  return response;
+}

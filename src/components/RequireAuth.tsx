@@ -1,52 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
-async function verifyOnServer(token: string): Promise<boolean> {
-  try {
-    const res = await fetch("/api/auth/verify", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    return data.valid === true;
-  } catch {
-    return false;
-  }
-}
-
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const { isLoggedIn, hydrated } = useAuth();
 
-  useEffect(() => {
-    let active = true;
-
-    const check = async () => {
-      if (!token) {
-        if (active) setAuthorized(false);
-        return;
-      }
-      const valid = await verifyOnServer(token);
-      if (active) setAuthorized(valid);
-    };
-
-    check();
-
-    const handler = () => {
-      setAuthorized(null);
-      check();
-    };
-    window.addEventListener("storage", handler);
-    return () => {
-      active = false;
-      window.removeEventListener("storage", handler);
-    };
-  }, [token]);
-
-  if (authorized === null) {
+  if (!hydrated) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
@@ -54,7 +14,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!authorized) {
+  if (!isLoggedIn) {
     const returnTo = typeof window !== "undefined"
       ? window.location.pathname + window.location.search
       : "/";

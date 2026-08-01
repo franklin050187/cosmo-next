@@ -4,19 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "./useAuth";
 
 export function useAuthFetch<T>(url: string) {
-  const { token } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!token) return;
+    if (!isLoggedIn) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData(await res.json());
     } catch (err) {
@@ -24,7 +22,7 @@ export function useAuthFetch<T>(url: string) {
     } finally {
       setLoading(false);
     }
-  }, [url, token]);
+  }, [url, isLoggedIn]);
 
   useEffect(() => {
     fetchData();

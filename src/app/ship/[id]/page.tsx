@@ -51,7 +51,7 @@ import { downloadShip } from "@/lib/download-ship";
 export default function ShipDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { token, user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [ship, setShip] = useState<ShipDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,12 +99,11 @@ export default function ShipDetailPage() {
   }, [params.id, user?.username]);
 
   const handleFavorite = async () => {
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     try {
       await fetch(`/api/ship/${params.id}/favorite`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
       });
       setIsFavorited(true);
     } catch (err) {
@@ -113,12 +112,11 @@ export default function ShipDetailPage() {
   };
 
   const handleUnfavorite = async () => {
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     try {
       await fetch(`/api/ship/${params.id}/unfavorite`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
       });
       setIsFavorited(false);
     } catch (err) {
@@ -134,12 +132,11 @@ export default function ShipDetailPage() {
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this ship?")) return;
 
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     try {
       await fetch(`/api/ship/${params.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       router.push(backUrl);
     } catch (err) {

@@ -7,7 +7,7 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminPage() {
-  const { token } = useAuth();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,7 @@ export default function AdminPage() {
     if (!turnstilePassed) return;
 
     const fetchData = async () => {
-      if (!token) {
+      if (!isLoggedIn) {
         setError("Not logged in");
         setLoading(false);
         return;
@@ -27,7 +27,6 @@ export default function AdminPage() {
       try {
         const res = await fetch("/api/analytics/dashboard", {
           headers: {
-            authorization: `Bearer ${token}`,
             "x-turnstile-token": turnstileToken,
           },
         });
@@ -45,7 +44,7 @@ export default function AdminPage() {
       }
     };
     fetchData();
-  }, [router, turnstilePassed, token]);
+  }, [router, turnstilePassed, isLoggedIn]);
 
   if (!turnstilePassed) {
     return (

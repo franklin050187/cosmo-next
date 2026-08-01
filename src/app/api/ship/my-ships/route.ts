@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMyShips } from "@/lib/db";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const payload = verifyRequest(req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const result = await getMyShips(payload.user.username);
+    const result = await getMyShips(user.username, user.id);
     return NextResponse.json(result);
   } catch (err) {
     console.error("ship/my-ships error:", err);

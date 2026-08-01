@@ -17,7 +17,7 @@ import { trackEvent } from "@/lib/analytics-client";
 function EditCollectionContent() {
   const params = useParams();
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [collection, setCollection] = useState<CollectionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -29,14 +29,12 @@ function EditCollectionContent() {
   useEffect(() => {
     let active = true;
 
-    if (!token) {
+    if (!isLoggedIn) {
       router.push("/");
       return;
     }
 
-    fetch(`/api/collections/${params.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`/api/collections/${params.id}`)
       .then((r) => r.json())
       .then((data) => {
         if (!active) return;
@@ -55,11 +53,11 @@ function EditCollectionContent() {
       .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
-  }, [params.id, router, token, user?.username]);
+  }, [params.id, router, isLoggedIn, user?.username]);
 
   const handleSave = async () => {
     if (!title.trim() || !collection) return;
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     const turnstileToken = turnstileRef.current?.getToken();
     if (!turnstileToken) {
@@ -74,7 +72,6 @@ function EditCollectionContent() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ title: title.trim(), description: description.trim(), "cf-turnstile-response": turnstileToken }),
       });
@@ -151,7 +148,7 @@ function EditCollectionContent() {
 }
 
 function AddShipsSection({ collectionId, existingShipIds }: { collectionId: number; existingShipIds: number[] }) {
-  const { token } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ShipRow[]>([]);
   const [searching, setSearching] = useState(false);
@@ -173,7 +170,7 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
   };
 
   const addShip = async (shipId: number) => {
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     setAdding(shipId);
     try {
@@ -181,7 +178,6 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ shipId }),
       });

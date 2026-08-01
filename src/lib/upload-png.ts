@@ -8,7 +8,6 @@ const { uploadFiles: utUpload } = genUploader({
 
 export async function uploadFiles(opts: {
   files: File[];
-  token?: string;
   description?: string;
   brand?: string;
   tags?: string[];
@@ -17,9 +16,6 @@ export async function uploadFiles(opts: {
   shipId?: number;
 }) {
   const headers: Record<string, string> = {};
-  if (opts.token) {
-    headers["Authorization"] = `Bearer ${opts.token}`;
-  }
   if (opts.description) {
     headers["x-description"] = opts.description;
   }

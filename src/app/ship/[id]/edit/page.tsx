@@ -17,7 +17,7 @@ import { type ShipDetail, type PriceResponse } from "@/lib/types";
 export default function EditShipPage() {
   const params = useParams();
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const [ship, setShip] = useState<ShipDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,15 +38,13 @@ export default function EditShipPage() {
 
   useEffect(() => {
     const fetchShip = async () => {
-      if (!token) {
+      if (!isLoggedIn) {
         router.push("/");
         return;
       }
 
       try {
-        const res = await fetch(`/api/ship/${params.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(`/api/ship/${params.id}`);
         if (!res.ok) throw new Error("Ship not found");
         const data = await res.json();
 
@@ -70,10 +68,10 @@ export default function EditShipPage() {
     };
 
     fetchShip();
-  }, [params.id, router, token, user?.username]);
+  }, [params.id, router, isLoggedIn, user?.username]);
 
   const handleSave = async () => {
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     setSaving(true);
     try {
@@ -81,7 +79,6 @@ export default function EditShipPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           ship_name: shipName,
@@ -136,7 +133,7 @@ export default function EditShipPage() {
   const handleReplaceConfirm = async () => {
     if (!ship || !replaceResult || !replaceFile) return;
 
-    if (!token) return;
+    if (!isLoggedIn) return;
 
     setReplacing(true);
     try {
@@ -144,7 +141,6 @@ export default function EditShipPage() {
 
       await uploadFiles({
         files: [file],
-        token,
         endpoint: "shipReplacer",
         shipId: ship.id,
         description,

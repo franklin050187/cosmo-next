@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function GET(
@@ -30,8 +30,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const payload = verifyRequest(req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -58,7 +58,7 @@ export async function PUT(
 
   try {
     const { updateCollection } = await import("@/lib/db");
-    const result = await updateCollection(collectionId, payload.user.username, {
+    const result = await updateCollection(collectionId, user.username, user.id, {
       title: body.title,
       description: body.description,
     });
@@ -74,11 +74,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const payload = verifyRequest(_req);
-  if (!payload?.user) {
+  const user = getUserFromRequest(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -90,7 +90,7 @@ export async function DELETE(
 
   try {
     const { deleteCollection } = await import("@/lib/db");
-    const result = await deleteCollection(collectionId, payload.user.username);
+    const result = await deleteCollection(collectionId, user.username, user.id);
 
     if ("error" in result) {
       return NextResponse.json(result, { status: result.error === "not the owner" ? 403 : 404 });

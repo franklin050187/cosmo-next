@@ -2,8 +2,8 @@ import { createUploadthing } from "uploadthing/next";
 import { UTApi } from "uploadthing/server";
 import { decodeShipFromUrl, decodeShipFromPixels } from "@/lib/server-decode";
 import { calculateShipPrice } from "@/lib/price";
-import { insertShip, updateShip, getImageData } from "@/lib/db";
-import { verifyToken, type TokenPayload } from "@/lib/auth";
+import { insertShip, updateShip, getImageData, isShipOwner } from "@/lib/db";
+import { getUserFromRequest, type UserPayload } from "@/lib/auth";
 import { computeShipSignature } from "@/lib/ship-signature";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
@@ -11,19 +11,12 @@ const f = createUploadthing();
 
 function commonMiddleware({ req }: { req: Request }) {
   const headers = req.headers;
-  const authHeader = headers.get("authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : null;
 
-  let payload: TokenPayload | null = null;
-  if (token) {
-    try {
-      payload = verifyToken(token);
-    } catch (e) {
-      console.error("Invalid token in upload middleware:", e);
-      // invalid token, continue as anonymous
-    }
+  let user: UserPayload | null = null;
+  try {
+    user = getUserFromRequest(req);
+  } catch (e) {
+    console.error("Invalid session token in upload middleware:", e);
   }
 
   const description = headers.get("x-description") ?? "";
@@ -40,7 +33,7 @@ function commonMiddleware({ req }: { req: Request }) {
     } catch (e) { console.error("Failed to parse user tags:", e); }
   }
 
-  return { token, payload, description, brand, userTags };
+  return { user, description, brand, userTags };
 }
 
 export const uploadRouter = {
@@ -51,9 +44,9 @@ export const uploadRouter = {
     },
   })
     .middleware(async ({ req }) => {
-      const { token, payload, description, brand, userTags } = commonMiddleware({ req });
+      const { user, description, brand, userTags } = commonMiddleware({ req });
 
-      if (!token || !payload?.user) {
+      if (!user) {
         throw new Error(
           "You must be logged in to upload ships. Please log in and try again."
         );
@@ -70,7 +63,8 @@ export const uploadRouter = {
       }
 
       return {
-        submittedBy: payload.user.username,
+        submittedBy: user.username,
+        submittedById: user.id,
         description,
         brand,
         userTags,
@@ -93,6 +87,7 @@ export const uploadRouter = {
           name: file.name ?? "unknown",
           data: file.ufsUrl,
           submittedBy: metadata.submittedBy,
+          submittedById: metadata.submittedById,
           description: metadata.description,
           shipName,
           author: priceInfo.author,
@@ -117,9 +112,9 @@ export const uploadRouter = {
     },
   })
     .middleware(async ({ req }) => {
-      const { token, payload, description, brand, userTags } = commonMiddleware({ req });
+      const { user, description, brand, userTags } = commonMiddleware({ req });
 
-      if (!token || !payload?.user) {
+      if (!user) {
         throw new Error("You must be logged in to replace ships.");
       }
 
@@ -136,11 +131,11 @@ export const uploadRouter = {
       if (!ship) {
         throw new Error("Ship not found");
       }
-      if (ship.submitted_by !== payload.user.username) {
+      if (!ship || !isShipOwner(ship, { id: user.id, username: user.username })) {
         throw new Error("You do not own this ship");
       }
 
-      return { submittedBy: payload.user.username, shipId, oldData: ship.data, description, brand, userTags };
+      return { submittedBy: user.username, submittedById: user.id, shipId, oldData: ship.data, description, brand, userTags };
     })
     .onUploadComplete(async ({ file, metadata }) => {
       try {
@@ -158,6 +153,7 @@ export const uploadRouter = {
           name: file.name ?? "unknown",
           data: file.ufsUrl,
           submittedBy: metadata.submittedBy,
+          submittedById: metadata.submittedById,
           description: metadata.description,
           shipName: (file.name ?? "unknown").replace(".ship.png", ""),
           author: priceInfo.author,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logEvent } from "@/lib/analytics-db";
-import { verifyRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,8 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "event_type is required" }, { status: 400 });
     }
 
-    const payload = verifyRequest(req);
-    const user = payload?.user;
+    const user = getUserFromRequest(req);
     const ship_id = body.ship_id != null ? Number(body.ship_id) : undefined;
     const url = body.url ? String(body.url) : undefined;
     const metadata = body.metadata as Record<string, unknown> | undefined;
