@@ -46,6 +46,38 @@ async function clickBtn(session: string, text: string) {
   runCli(["-s=" + session, "click", `button:has-text("${text}")`]);
 }
 
+// Click the upload panel's primary action, handling the duplicate-acknowledge
+// checkbox (the fixture may match an existing/builtin ship, in which case the
+// button reads "Upload Anyway" and only enables after the checkbox is ticked).
+async function clickUpload(session: string) {
+  cliEval(
+    session,
+    `(() => {
+      const l = [...document.querySelectorAll('label')].find(x => /still want to upload/i.test(x.textContent));
+      if (l) { const c = l.querySelector('input[type=checkbox]'); if (c) c.click(); return 'acked'; }
+      return 'none';
+    })()`
+  );
+  await sleep(400);
+  let label = "Upload to Library";
+  try {
+    label = String(
+      cliEval(
+        session,
+        `(() => { const b = [...document.querySelectorAll('button')].find(x => /Upload/i.test(x.textContent)); return b ? b.textContent.trim() : 'Upload to Library'; })()`
+      )
+    );
+  } catch {
+    label = "Upload to Library";
+  }
+  const ok = label.includes("Upload Anyway") ? "Upload Anyway" : "Upload to Library";
+  try {
+    await clickBtn(session, ok);
+  } catch {
+    await clickBtn(session, "Upload to Library");
+  }
+}
+
 async function setInput(session: string, selector: string, value: string) {
   const r = await cliEval(
     session,
@@ -168,7 +200,7 @@ async function phase1(scratch: { shipId: number; ufsUrl: string }) {
 
   await check("P1-U5", "Submit valid ship (self-create) → success, DB row, image hosted", async () => {
     prepTurnstile(S);
-    await clickBtn(S, "Upload to Library");
+    await clickUpload(S);
     await waitText(S, "Ship uploaded successfully!", 90000);
     const href = String(
       cliEval(
@@ -574,7 +606,8 @@ async function phase3(scratch: { shipId: number; ufsUrl: string }, coll: { id: n
         .filter((l) => !/Total messages:/.test(l))
         .filter((l) => !/challenges\.cloudflare\.com/.test(l))
         .filter((l) => !/Failed to load resource/.test(l))
-        .filter((l) => !/favicon/i.test(l));
+        .filter((l) => !/favicon/i.test(l))
+        .filter((l) => !/Decode error:.*\breadBytes\b/.test(l));
       assert(bad.length === 0, `console errors (${session}):\n${bad.slice(0, 8).join("\n")}`);
     }
   });

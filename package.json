@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "backfill-signatures": "npx tsx scripts/backfill-signatures.ts"
+    "backfill-signatures": "npx tsx scripts/backfill-signatures.ts",
+    "backfill-prices": "npx tsx --env-file=.env scripts/backfill-ship-prices.ts",
+    "import-builtins": "npx tsx --env-file=.env scripts/import-builtin-ships.ts"
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.3",

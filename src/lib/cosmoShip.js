@@ -490,7 +490,6 @@ async function loadImageData(source) {
 
   try {
     const decoded = await decodePngRaw(blob);
-    console.log('[cosmoShip] decoded PNG manually (byte-exact, no canvas):', decoded.width, 'x', decoded.height);
     return decoded;
   } catch (err) {
     console.warn(
@@ -647,26 +646,18 @@ export class Ship {
       console.error('[cosmoShip] failed to load/decode image source:', source, err);
       throw err;
     }
-    console.log('[cosmoShip] image loaded:', imageData.width, 'x', imageData.height,
-      '(', imageData.data.length, 'bytes RGBA )');
 
     const ship = new Ship(imageData);
 
     let payload = ship.readBytes();
-    console.log('[cosmoShip] LSB payload length:', payload.length,
-      'first 16 bytes:', bytesToHexUpper(payload.slice(0, 16)));
 
     const magic = new TextEncoder().encode('COSMOSHIP');
     if (payload.length >= magic.length && magic.every((b, i) => payload[i] === b)) {
       payload = payload.slice(magic.length);
       ship.version = 2;
-      console.log('[cosmoShip] COSMOSHIP magic found, version = 2');
     } else {
-      console.log('[cosmoShip] no COSMOSHIP magic, version = 1');
+      ship.version = 1;
     }
-
-    console.log('[cosmoShip] gzip candidate first 4 bytes:', bytesToHexUpper(payload.slice(0, 4)),
-      '(expected 1F 8B 08 ..)');
 
     let raw;
     try {
@@ -676,7 +667,6 @@ export class Ship {
         'first bytes:', bytesToHexUpper(payload.slice(0, 16)));
       throw err;
     }
-    console.log('[cosmoShip] gunzip OK, decompressed length:', raw.length);
 
     ship.reader = new ByteReader(raw);
     ship.data = ship.decode();
@@ -690,11 +680,6 @@ export class Ship {
     const usableBits = numPixels * 3;
     const numBytes = Math.floor(usableBits / 8);
     const out = new Uint8Array(numBytes);
-
-    console.log('[cosmoShip] readBytes: numPixels =', numPixels, 'numBytes available =', numBytes,
-      'data.length =', data.length, '(expected', numPixels * 4, ')');
-    console.log('[cosmoShip] first 8 raw RGBA pixels:',
-      Array.from(data.slice(0, 32)));
 
     let bitIndex = 0;
     for (let p = 0; p < numPixels && bitIndex < numBytes * 8; p++) {
@@ -910,7 +895,6 @@ import { Ship, imageDataToBlob } from './cosmoShip.js';
 fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   const ship = await Ship.fromSource(file);
-  console.log(ship.data); // decoded blueprint tree
 
   ship.data.Name = 'Renamed ship'; // edit the tree as needed
 
