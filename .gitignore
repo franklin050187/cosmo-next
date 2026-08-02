@@ -44,7 +44,10 @@ broken-links.log
 CODE_REVIEW_FINDINGS.md
 CODE_REVIEW_FINDINGS_NEXT.md
 AGENTS.md
-/scripts
+
+# dev/QA scripts (keep in repo, not in deploy package)
+# large regenerable Steam extraction data stays local
+/scripts/ingame
 
 # typescript
 *.tsbuildinfo
