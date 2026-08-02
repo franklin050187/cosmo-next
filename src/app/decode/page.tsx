@@ -1,11 +1,25 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { Ship } from "@/lib/cosmoShip";
 
 export default function DecodePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") {
+      router.replace("/");
+    }
+  }, [router]);
+
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
   const [decodedData, setDecodedData] = useState<object | null>(null);
   const [priceResult, setPriceResult] = useState<{ price: number; crew: number; author: string; tags: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);

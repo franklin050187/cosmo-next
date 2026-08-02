@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { type ShipRow } from "@/lib/db";
 import CollectionPicker from "@/components/collection/CollectionPicker";
@@ -26,6 +27,7 @@ function formatPrice(price: number): string {
 export default function ShipCard({ ship, priority = false }: { ship: ShipRow; priority?: boolean }) {
   const tags = (ship.tags ?? []).filter((t) => DISPLAY_TAGS.includes(t)).slice(0, 4);
   const [downloading, setDownloading] = useState(false);
+  const router = useRouter();
   const { isLoggedIn } = useAuth();
 
   const saveBackUrl = () => {
@@ -46,23 +48,24 @@ export default function ShipCard({ ship, priority = false }: { ship: ShipRow; pr
 
   return (
     <li className="group relative border border-[#1C598C]/50 rounded-xl bg-[#021526]/80 backdrop-blur shadow-[0_0_12px_rgba(0,126,255,0.15)] hover:shadow-[0_0_20px_rgba(0,126,255,0.25)] hover:border-cyan-400/30 transition-all duration-200">
-      {/* Image */}
+      {/* Image — a standalone, non-anchor <img> so native drags yield the image
+          (PNG) itself rather than the ship-page link. Clicking the image still
+          navigates to the ship page. The download/collection buttons are
+          positioned outside this element so they don't intercept drags. */}
       <div className="relative overflow-hidden rounded-t-xl">
         <img
           src={ship.data}
           alt={ship.ship_name}
           width={400}
           height={400}
+          draggable
           fetchPriority={priority ? "high" : undefined}
           loading={priority ? "eager" : "lazy"}
-          className="block w-full aspect-square object-contain bg-[#0a1e33]/50 group-hover:scale-[1.02] transition-transform duration-300"
-        />
-
-        <Link
-          href={`/ship/${ship.id}`}
-          className="absolute inset-0"
-          aria-label={ship.ship_name}
-          onClick={saveBackUrl}
+          className="block w-full aspect-square object-contain bg-[#0a1e33]/50 group-hover:scale-[1.02] transition-transform duration-300 cursor-zoom-in"
+          onClick={() => {
+            saveBackUrl();
+            router.push(`/ship/${ship.id}`);
+          }}
         />
 
         {/* Stats overlay — top */}
