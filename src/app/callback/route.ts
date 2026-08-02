@@ -117,8 +117,8 @@ export async function GET(req: NextRequest) {
       path: "/",
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
-      maxAge: 30 * 86400,
+      sameSite: "strict",
+      maxAge: 7 * 86400,
     });
     res.cookies.set("oauth_csrf", "", { path: "/", maxAge: 0 });
     res.cookies.set("oauth_return", "", { path: "/", maxAge: 0 });

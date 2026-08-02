@@ -1,7 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createRateLimiter, getClientIp, rateLimitHeaders } from "@/lib/rate-limit";
+
+const loginLimiter = createRateLimiter({ tokens: 5, windowMs: 60_000, keyPrefix: "login" });
+const uploadLimiter = createRateLimiter({ tokens: 10, windowMs: 60_000, keyPrefix: "upload" });
+const apiLimiter = createRateLimiter({ tokens: 60, windowMs: 60_000, keyPrefix: "api" });
+const checkDuplicateLimiter = createRateLimiter({ tokens: 20, windowMs: 60_000, keyPrefix: "check-dup" });
+
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function getLimiterForPath(pathname: string) {
+  if (pathname.startsWith("/api/auth/") || pathname.startsWith("/auth/")) return loginLimiter;
+  if (pathname.startsWith("/api/uploadthing")) return uploadLimiter;
+  if (pathname === "/api/ship/check-duplicate") return checkDuplicateLimiter;
+  if (pathname.startsWith("/api/")) return apiLimiter;
+  return null;
+}
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  if (origin && ALLOWED_ORIGINS.length > 0 && ALLOWED_ORIGINS.includes(origin)) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-CSRF-Token, X-Turnstile-Token",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Max-Age": "86400",
+    };
+  }
+  return {};
+}
+
+function applyHeaders(res: NextResponse, headers: Record<string, string>) {
+  Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+}
 
 export function proxy(request: NextRequest) {
-  const nonce = crypto.randomUUID().replace(/-/g, "");
+  const nonce = crypto.randomUUID().replace(/\-/g, "");
   const isDev = process.env.NODE_ENV === "development";
 
   const cspHeader = `
@@ -32,6 +68,52 @@ export function proxy(request: NextRequest) {
   response.headers.set("Content-Security-Policy", cspHeader);
 
   return response;
+}
+
+export async function middleware(req: NextRequest) {
+  const cors = corsHeaders(req.headers.get("origin"));
+
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, { status: 204, headers: cors });
+  }
+
+  // check-duplicate has its own limiter but also needs CORS
+  if (req.nextUrl.pathname === "/api/ship/check-duplicate") {
+    const ip = getClientIp(req);
+    const result = await checkDuplicateLimiter.limit(ip);
+    const headers = { ...rateLimitHeaders(result), ...cors };
+    if (!result.success) {
+      return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+    const proxyResponse = await proxy(req);
+    applyHeaders(proxyResponse, headers);
+    return proxyResponse;
+  }
+
+  const limiter = getLimiterForPath(req.nextUrl.pathname);
+  if (limiter) {
+    const ip = getClientIp(req);
+    const result = await limiter.limit(ip);
+    const headers = { ...rateLimitHeaders(result), ...cors };
+
+    if (!result.success) {
+      return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+
+    const proxyResponse = await proxy(req);
+    applyHeaders(proxyResponse, headers);
+    return proxyResponse;
+  }
+
+  const proxyResponse = await proxy(req);
+  applyHeaders(proxyResponse, cors);
+  return proxyResponse;
 }
 
 export const config = {

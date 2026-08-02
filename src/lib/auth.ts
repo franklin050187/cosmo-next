@@ -7,7 +7,7 @@ function getJwtSecret(): string {
   return secret;
 }
 
-const TOKEN_EXPIRY = "30d";
+const TOKEN_EXPIRY = "7d";
 
 export interface UserPayload {
   id: string;
