@@ -22,6 +22,20 @@ for (const part of partsResources) {
     const res = resourceCost.find((r) => r.ID === resourceId);
     if (res) cost += res.BuyPrice * Number(qty);
   }
+  if (part.AmmoCapacity) {
+    const bullet = resourceCost.find((r) => r.ID === "bullet");
+    if (bullet) cost += bullet.BuyPrice * part.AmmoCapacity;
+  }
+  if (part.FuelCapacity) {
+    const hyperium = resourceCost.find((r) => r.ID === "hyperium");
+    if (hyperium) cost += hyperium.BuyPrice * part.FuelCapacity;
+  }
+  if (part.InputResources) {
+    for (const [resourceId, qty] of part.InputResources) {
+      const res = resourceCost.find((r) => r.ID === resourceId);
+      if (res) cost += res.BuyPrice * Number(qty);
+    }
+  }
   partCostCache.set(part.ID, cost);
 }
 
