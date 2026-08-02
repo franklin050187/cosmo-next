@@ -20,8 +20,15 @@ export interface DecodedShip {
   [key: string]: unknown;
 }
 
+const MAX_CACHE_SIZE = 50;
 const cache = new Map<string, DecodedShip>();
 const inflight = new Map<string, Promise<DecodedShip>>();
+
+function evictCache() {
+  if (cache.size <= MAX_CACHE_SIZE) return;
+  const oldest = cache.keys().next().value;
+  if (oldest !== undefined) cache.delete(oldest);
+}
 
 export function useShipDecode(imageUrl: string) {
   const [decoded, setDecoded] = useState<DecodedShip | null>(() => {
@@ -52,6 +59,7 @@ export function useShipDecode(imageUrl: string) {
         const blob = await res.blob();
         const ship = await Ship.fromSource(blob);
         const result = ship.data as DecodedShip;
+        evictCache();
         cache.set(imageUrl, result);
         return result;
       })();

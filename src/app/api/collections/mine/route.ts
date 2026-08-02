@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
+import { getUserCollections } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const user = getUserFromRequest(req);
@@ -8,7 +9,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { getUserCollections } = await import("@/lib/db");
     const { searchParams } = new URL(req.url);
     const shipId = searchParams.get("shipId");
     const data = await getUserCollections(

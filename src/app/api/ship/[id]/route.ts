@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getImageData, deleteShip } from "@/lib/db";
+import { getImageData, deleteShip, isShipOwner, updateShip } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 import { UTApi } from "uploadthing/server";
 
@@ -47,12 +47,10 @@ export async function PUT(
       return NextResponse.json({ error: "Payload too large" }, { status: 413 });
     }
     const body = await req.json();
-    const { getImageData: getShip } = await import("@/lib/db");
-    const ship = await getShip(shipId);
+    const ship = await getImageData(shipId);
     if (!ship) {
       return NextResponse.json({ error: "Ship not found" }, { status: 404 });
     }
-    const { isShipOwner, updateShip } = await import("@/lib/db");
     if (!isShipOwner(ship, { id: user.id, username: user.username })) {
       return NextResponse.json({ error: "Not the owner" }, { status: 403 });
     }

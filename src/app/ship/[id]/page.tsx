@@ -67,62 +67,68 @@ export default function ShipDetailPage() {
     setBackUrl(sessionStorage.getItem("shipBackUrl") || "/");
   }, []);
 
-  useEffect(() => {
-    let active = true;
+   useEffect(() => {
+     let active = true;
 
-    const fetchShip = async () => {
-      try {
-        const res = await fetch(`/api/ship/${params.id}`);
-        if (!res.ok) throw new Error("Ship not found");
-        const data = await res.json();
-        if (!active) return;
-        setShip(data);
-        document.title = `${data.ship_name?.replace(".ship.png", "")} - CosmoShip`;
+     const fetchShip = async () => {
+       try {
+         const res = await fetch(`/api/ship/${params.id}`);
+         if (!res.ok) throw new Error("Ship not found");
+         const data = await res.json();
+         if (!active) return;
+         setShip(data);
+         document.title = `${data.ship_name?.replace(".ship.png", "")} - CosmoShip`;
+         if (user?.username === data.submitted_by) {
+           setIsOwner(true);
+         }
+       } catch {
+         if (active) setError("Ship not found");
+       } finally {
+         if (active) setLoading(false);
+       }
+     };
 
-        fetch(`/api/collections?shipId=${params.id}`)
-          .then((r) => r.json())
-          .then((d) => { if (active) setCollections(d.data ?? []); })
-          .catch((e) => console.error("Failed to fetch collections:", e));
+     const fetchCollections = async () => {
+       try {
+         const res = await fetch(`/api/collections?shipId=${params.id}`);
+         if (!res.ok) throw new Error("Failed to fetch collections");
+         const data = await res.json();
+         if (active) setCollections(data.data ?? []);
+       } catch {
+         /* silent */
+       }
+     };
 
-        if (user?.username === data.submitted_by) {
-          setIsOwner(true);
-        }
-      } catch {
-        if (active) setError("Ship not found");
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
+     fetchShip();
+     fetchCollections();
+     return () => { active = false; };
+   }, [params.id, user?.username]);
 
-    fetchShip();
-    return () => { active = false; };
-  }, [params.id, user?.username]);
+   const handleFavorite = async () => {
+     if (!isLoggedIn) return;
+     setIsFavorited(true);
+     try {
+       await fetch(`/api/ship/${params.id}/favorite`, {
+         method: "POST",
+       });
+     } catch (err) {
+       console.error("Failed to add favorite:", err);
+       setIsFavorited(false);
+     }
+   };
 
-  const handleFavorite = async () => {
-    if (!isLoggedIn) return;
-
-    try {
-      await fetch(`/api/ship/${params.id}/favorite`, {
-        method: "POST",
-      });
-      setIsFavorited(true);
-    } catch (err) {
-      console.error("Failed to add favorite:", err);
-    }
-  };
-
-  const handleUnfavorite = async () => {
-    if (!isLoggedIn) return;
-
-    try {
-      await fetch(`/api/ship/${params.id}/unfavorite`, {
-        method: "POST",
-      });
-      setIsFavorited(false);
-    } catch (err) {
-      console.error("Failed to remove favorite:", err);
-    }
-  };
+   const handleUnfavorite = async () => {
+     if (!isLoggedIn) return;
+     setIsFavorited(false);
+     try {
+       await fetch(`/api/ship/${params.id}/unfavorite`, {
+         method: "POST",
+       });
+     } catch (err) {
+       console.error("Failed to remove favorite:", err);
+       setIsFavorited(true);
+     }
+   };
 
   const handleDownload = () => {
     if (!ship) return;

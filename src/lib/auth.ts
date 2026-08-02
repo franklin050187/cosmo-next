@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from "next/server";
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -50,4 +51,12 @@ export function getUserFromRequest(req: Request): UserPayload | null {
   } catch {
     return null;
   }
+}
+
+export function requireAuth(req: NextRequest): { user: UserPayload } | NextResponse {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return { user };
 }

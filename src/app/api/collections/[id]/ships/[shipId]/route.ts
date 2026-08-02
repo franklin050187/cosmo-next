@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
+import { removeShipFromCollection } from "@/lib/db";
 
 export async function DELETE(
   req: NextRequest,
@@ -18,7 +19,6 @@ export async function DELETE(
   }
 
   try {
-    const { removeShipFromCollection } = await import("@/lib/db");
     const result = await removeShipFromCollection(
       collectionId,
       shipIdNum,
