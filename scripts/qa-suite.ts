@@ -279,19 +279,39 @@ async function phase2(scratch: { shipId: number }) {
     });
   }
 
-  await check("P2-G2", "Analytics dashboard gated for anonymous (403 + no data leak)", async () => {
-    const res = await httpFetch(A, "/api/analytics/dashboard");
-    assert(res.status === 401, `dashboard api status ${res.status}`);
-    openSession(A, HOME + "/admin");
-    await waitText(A, "Complete the captcha");
-    prepTurnstile(A);
-    await waitFor(
-      A,
-      `document.body.innerText.toLowerCase().includes("not logged in") || window.location.pathname === "/"`,
-      15000
-    );
-    assert(!pageText(A).includes("Total Events"), "dashboard data leaked to anon");
-  });
+   await check("P2-G2", "Analytics dashboard gated for anonymous (403 + no data leak)", async () => {
+     const res = await httpFetch(A, "/api/analytics/dashboard");
+     assert(res.status === 401, `dashboard api status ${res.status}`);
+     openSession(A, HOME + "/admin");
+     await waitText(A, "Complete the captcha");
+     prepTurnstile(A);
+     await waitFor(
+       A,
+       `document.body.innerText.toLowerCase().includes("not logged in") || window.location.pathname === "/"`,
+       15000
+     );
+     assert(!pageText(A).includes("Total Events"), "dashboard data leaked to anon");
+   });
+
+   await check("P2-G11", "Rate limiting on check-duplicate endpoint", async () => {
+     const clients = Array.from({ length: 22 }, () => SESSION_ANON);
+     for (let i = 0; i < 22; i++) {
+       const session = clients[i];
+       const payload = { signature: "dummy-sign-${i}" };
+       const res = await httpFetch(session, "/api/ship/check-duplicate", {
+         method: "POST",
+         body: JSON.stringify(payload),
+         headers: { "Content-Type": "application/json" },
+       });
+       const ok = res.status !== 429;
+       if (i < 21) {
+         assert(ok, `check-duplicate should accept requests (attempt ${i+1})`);
+       } else {
+         assert(!ok, `check-duplicate should rate limit on 22nd request (status ${res.status})`);
+       }
+       console.log(`Attempt ${i+1}: status ${res.status}`);
+     }
+   });
 
   await check("P2-G3", `Ship edit (${scratch.shipId}) redirects anonymous to home`, async () => {
     openSession(A, HOME + `/ship/${scratch.shipId}/edit`);
