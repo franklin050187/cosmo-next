@@ -6,14 +6,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Dev Server
 
-Port **8000** is required (Discord OAuth callback). Start detached so the process survives shell exit:
+Port **8000** is required (Discord OAuth callback). Start fully detached so it survives shell exit AND so the terminal/shell tool returns immediately (do NOT use a bare `&`/`nohup … &` — those hang the calling shell because the process inherits its stdout/stderr):
 
 ```bash
-setsid bash -c 'cd /home/johnn/cosmo-next && exec npx next dev -p 8000 >> /tmp/next-server.log 2>&1' &
+cd /home/johnn/cosmo-next && (setsid npx next dev -p 8000 >> /tmp/next-server.log 2>&1 < /dev/null &) ; echo "launched"
 ```
 
-Verify with `curl -s -o /dev/null -w "%{http_code}" http://localhost:8000` (expect 200).
-Logs: `tail -f /tmp/next-server.log`
+Restart (kills any prior instance, starts fresh — needed after `.env` edits, which the dev server only picks up on a restart):
+
+```bash
+pkill -f 'next dev' ; sleep 2 ; cd /home/johnn/cosmo-next && (setsid npx next dev -p 8000 >> /tmp/next-server.log 2>&1 < /dev/null &) ; echo "launched"
+```
+
+Verify with `curl -s -o /dev/null -w "%{http_code}" http://localhost:8000` (expect 200; cold start can take ~10s). Logs: `tail -f /tmp/next-server.log`
 
 ## QA Testing with Real Data (playwright-cli + Brave)
 

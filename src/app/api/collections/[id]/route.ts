@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
-import { verifyTurnstileToken } from "@/lib/turnstile";
+import { requireAuth } from "@/lib/auth";
+import { verifyTurnstileFromRequest } from "@/lib/turnstile";
 import { getCollection, updateCollection, deleteCollection } from "@/lib/db";
 
 export async function GET(
@@ -30,10 +30,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = getUserFromRequest(req);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
 
   const { id } = await params;
   const collectionId = parseInt(id, 10);
@@ -47,13 +46,8 @@ export async function PUT(
   }
   const body = await req.json();
 
-  if (process.env.NODE_ENV !== "development") {
-    const turnstileToken = body["cf-turnstile-response"] || "";
-    const ip = (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "").replace(/^::ffff:/, "");
-    const turnstileOk = await verifyTurnstileToken(turnstileToken, ip);
-    if (!turnstileOk) {
-      return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });
-    }
+  if (!(await verifyTurnstileFromRequest(req, (body["cf-turnstile-response"] as string) ?? ""))) {
+    return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });
   }
 
   try {
@@ -76,15 +70,18 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = getUserFromRequest(req);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
 
   const { id } = await params;
   const collectionId = parseInt(id, 10);
   if (isNaN(collectionId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
+  if (!(await verifyTurnstileFromRequest(req))) {
+    return NextResponse.json({ error: "Turnstile verification failed" }, { status: 403 });
   }
 
   try {

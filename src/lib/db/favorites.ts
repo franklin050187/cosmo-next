@@ -1,4 +1,5 @@
-import { query, queryOnClient, fetchAll, fetchOne, fetchOneOnClient, transaction } from "./core";
+import { queryOnClient, fetchAll, fetchOneOnClient, transaction } from "./core";
+import { bumpDbVersion } from "@/lib/cache";
 
 export async function getMyFavorites(user: string, userId: string) {
   const data = await fetchAll(
@@ -19,6 +20,7 @@ export async function addToFavorites(user: string, userId: string, shipId: numbe
       await queryOnClient(client, "UPDATE favoritedb SET favorite = favorite || $1::int[] WHERE discord_id = $2 OR name = $3", [[shipId], userId, user]);
     }
     await queryOnClient(client, "UPDATE shipdb SET fav = fav + 1 WHERE id = $1", [shipId]);
+    bumpDbVersion();
     return { success: "favorited" };
   });
 }
@@ -37,6 +39,7 @@ export async function deleteFromFavorites(user: string, userId: string, shipId: 
       await queryOnClient(client, "UPDATE favoritedb SET favorite = $1::int[] WHERE discord_id = $2 OR name = $3", [favorites, userId, user]);
     }
     await queryOnClient(client, "UPDATE shipdb SET fav = fav - 1 WHERE id = $1", [shipId]);
+    bumpDbVersion();
     return { success: "unfavorited" };
   });
 }

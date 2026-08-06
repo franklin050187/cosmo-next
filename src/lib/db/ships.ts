@@ -1,4 +1,5 @@
-import { query, queryOnClient, fetchAll, fetchOne, fetchAllOnClient, fetchOneOnClient, transaction, sanitizeText, PAGE_SIZE, isShipOwner } from "./core";
+import { query, queryOnClient, fetchAll, fetchOne, fetchOneOnClient, transaction, sanitizeText, isShipOwner } from "./core";
+import { cachedQuery, bumpDbVersion } from "@/lib/cache";
 
 export interface ShipRow {
   id: number;
@@ -19,7 +20,9 @@ export interface ShipRow {
 }
 
 export async function getImageData(shipId: number): Promise<ShipRow | null> {
-  return fetchOne("SELECT id, name, data, submitted_by, discord_id, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = $1", [shipId]);
+  return cachedQuery("ship", 30_000, String(shipId), async () =>
+    fetchOne("SELECT id, name, data, submitted_by, discord_id, description, ship_name, author, price, brand, crew, tags, downloads, fav, date FROM shipdb WHERE id = $1", [shipId])
+  );
 }
 
 export async function getMyShips(user: string, userId: string) {
@@ -32,6 +35,7 @@ export async function getMyShips(user: string, userId: string) {
 
 export async function updateDownloads(shipId: number) {
   await query("UPDATE shipdb SET downloads = downloads + 1 WHERE id = $1", [shipId]);
+  bumpDbVersion();
 }
 
 export async function deleteShip(shipId: number, user: { id: string; username: string }) {
@@ -44,6 +48,7 @@ export async function deleteShip(shipId: number, user: { id: string; username: s
     await queryOnClient(client, "DELETE FROM favoritedb WHERE array_length(favorite, 1) IS NULL", []);
     await queryOnClient(client, "DELETE FROM ship_signatures WHERE ship_id = $1", [shipId]);
     await queryOnClient(client, "DELETE FROM shipdb WHERE id = $1 AND (discord_id = $2 OR submitted_by = $3)", [shipId, user.id, user.username]);
+    bumpDbVersion();
     return { success: `ship ${shipId} deleted`, data: row.data };
   });
 }
@@ -102,6 +107,7 @@ export async function insertShip({
         [shipId, signature],
       );
     }
+    bumpDbVersion();
     return { success: `${shipId}` };
   });
 }
@@ -163,6 +169,7 @@ export async function updateShip({
         [id, signature],
       );
     }
+    bumpDbVersion();
     return { success: "ship updated" };
   });
 }

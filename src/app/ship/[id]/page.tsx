@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useShipDecode } from "@/hooks/useShipDecode";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import Card from "@/components/ui/Card";
 import PreconnectForImage from "@/components/ui/PreconnectForImage";
+import TurnstileWidget from "@/components/TurnstileWidget";
 import { formatDate } from "@/lib/format-date";
 import { type ShipDetail } from "@/lib/types";
 
@@ -62,9 +64,13 @@ export default function ShipDetailPage() {
   const [showPriceAnalysis, setShowPriceAnalysis] = useState(false);
   const [collections, setCollections] = useState<{ id: number; title: string; owner: string }[]>([]);
   const [backUrl, setBackUrl] = useState("/");
+  const [pendingDelete, setPendingDelete] = useState(false);
 
   useEffect(() => {
-    setBackUrl(sessionStorage.getItem("shipBackUrl") || "/");
+    const id = setTimeout(() => {
+      setBackUrl(sessionStorage.getItem("shipBackUrl") || "/");
+    }, 0);
+    return () => clearTimeout(id);
   }, []);
 
    useEffect(() => {
@@ -104,7 +110,7 @@ export default function ShipDetailPage() {
      return () => { active = false; };
    }, [params.id, user?.username]);
 
-   const handleFavorite = async () => {
+    const handleFavorite = async () => {
      if (!isLoggedIn) return;
      setIsFavorited(true);
      try {
@@ -135,18 +141,23 @@ export default function ShipDetailPage() {
     downloadShip(Number(params.id), ship.ship_name, ship.data);
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this ship?")) return;
-
+  const handleDelete = () => {
     if (!isLoggedIn) return;
+    if (!confirm("Are you sure you want to delete this ship?")) return;
+    setPendingDelete(true);
+  };
 
+  const onDeleteVerify = async (token: string) => {
+    if (!pendingDelete || !token) return;
     try {
       await fetch(`/api/ship/${params.id}`, {
         method: "DELETE",
+        headers: { "x-turnstile-token": token },
       });
       router.push(backUrl);
     } catch (err) {
       console.error("Failed to delete ship:", err);
+      setPendingDelete(false);
     }
   };
 
@@ -173,7 +184,7 @@ export default function ShipDetailPage() {
       <Card>
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-shrink-0">
-            <img
+            <Image
               src={ship.data}
               alt={ship.ship_name}
               width={512}
@@ -332,6 +343,7 @@ export default function ShipDetailPage() {
         </Card>
       )}
       {showJson && <div className="mt-6"><ShipJson imageUrl={ship.data} /></div>}
+      {isOwner && pendingDelete && <TurnstileWidget onVerify={onDeleteVerify} />}
     </div>
   );
 }

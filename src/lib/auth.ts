@@ -53,10 +53,41 @@ export function getUserFromRequest(req: Request): UserPayload | null {
   }
 }
 
-export function requireAuth(req: NextRequest): { user: UserPayload } | NextResponse {
+export type AuthGuard =
+  | { ok: true; user: UserPayload }
+  | { ok: false; response: NextResponse };
+
+function getAdminUsernames(): string[] {
+  return (process.env.ADMIN_USERNAMES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function isAdminUsername(username: string | null | undefined): boolean {
+  if (!username) return false;
+  return getAdminUsernames().includes(username);
+}
+
+export function requireAuth(req: NextRequest): AuthGuard {
   const user = getUserFromRequest(req);
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
   }
-  return { user };
+  return { ok: true, user };
+}
+
+export function requireAdmin(req: NextRequest): AuthGuard {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth;
+  if (!isAdminUsername(auth.user.username)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+  return auth;
 }

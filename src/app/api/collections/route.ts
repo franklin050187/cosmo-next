@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { getCollectionsForShip, getAllCollections, createCollection } from "@/lib/db";
 
@@ -26,10 +26,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = getUserFromRequest(req);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
 
   const cl = req.headers.get("content-length");
   if (cl && parseInt(cl, 10) > 1_048_576) {

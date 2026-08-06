@@ -1,15 +1,13 @@
 import { NextRequest } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
-import { ok, badRequest, error, unauthorized } from "@/lib/api";
+import { requireAuth } from "@/lib/auth";
+import { ok, badRequest, error } from "@/lib/api";
 import { findDuplicateBySignature } from "@/lib/db";
 import { decodePngPixels, decodeShipFromPixels } from "@/lib/server-decode";
 import { computeShipSignature } from "@/lib/ship-signature";
 
 export async function POST(req: NextRequest) {
-  const user = getUserFromRequest(req);
-  if (!user) {
-    return unauthorized();
-  }
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
 
   try {
     const contentType = req.headers.get("content-type") ?? "";

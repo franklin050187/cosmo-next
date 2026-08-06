@@ -3,7 +3,7 @@ import { createRateLimiter, getClientIp, rateLimitHeaders } from "@/lib/rate-lim
 
 const loginLimiter = createRateLimiter({ tokens: 5, windowMs: 60_000, keyPrefix: "login" });
 const uploadLimiter = createRateLimiter({ tokens: 10, windowMs: 60_000, keyPrefix: "upload" });
-const apiLimiter = createRateLimiter({ tokens: 60, windowMs: 60_000, keyPrefix: "api" });
+const apiLimiter = createRateLimiter({ tokens: 600, windowMs: 60_000, keyPrefix: "api" });
 const checkDuplicateLimiter = createRateLimiter({ tokens: 20, windowMs: 60_000, keyPrefix: "check-dup" });
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
   .filter(Boolean);
 
 function getLimiterForPath(pathname: string) {
-  if (pathname.startsWith("/api/auth/") || pathname.startsWith("/auth/")) return loginLimiter;
+  if (pathname === "/callback" || pathname === "/auth/discord") return loginLimiter;
   if (pathname.startsWith("/api/uploadthing")) return uploadLimiter;
   if (pathname === "/api/ship/check-duplicate") return checkDuplicateLimiter;
   if (pathname.startsWith("/api/")) return apiLimiter;
@@ -36,8 +36,12 @@ function applyHeaders(res: NextResponse, headers: Record<string, string>) {
   Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
 }
 
-export function proxy(request: NextRequest) {
-  const nonce = crypto.randomUUID().replace(/\-/g, "");
+function isApiPath(pathname: string): boolean {
+  return pathname.startsWith("/api/");
+}
+
+function applyCsp(request: NextRequest): NextResponse {
+  const nonce = crypto.randomUUID().replace(/-/g, "");
   const isDev = process.env.NODE_ENV === "development";
 
   const cspHeader = `
@@ -61,39 +65,22 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", cspHeader);
 
-  const response = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
-
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", cspHeader);
-
   return response;
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const cors = corsHeaders(req.headers.get("origin"));
 
   if (req.method === "OPTIONS") {
     return new NextResponse(null, { status: 204, headers: cors });
   }
 
-  // check-duplicate has its own limiter but also needs CORS
-  if (req.nextUrl.pathname === "/api/ship/check-duplicate") {
-    const ip = getClientIp(req);
-    const result = await checkDuplicateLimiter.limit(ip);
-    const headers = { ...rateLimitHeaders(result), ...cors };
-    if (!result.success) {
-      return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
-        status: 429,
-        headers: { ...headers, "Content-Type": "application/json" },
-      });
-    }
-    const proxyResponse = await proxy(req);
-    applyHeaders(proxyResponse, headers);
-    return proxyResponse;
-  }
+  const pathname = req.nextUrl.pathname;
+  const isApi = isApiPath(pathname);
+  const limiter = getLimiterForPath(pathname);
 
-  const limiter = getLimiterForPath(req.nextUrl.pathname);
   if (limiter) {
     const ip = getClientIp(req);
     const result = await limiter.limit(ip);
@@ -106,20 +93,20 @@ export async function middleware(req: NextRequest) {
       });
     }
 
-    const proxyResponse = await proxy(req);
-    applyHeaders(proxyResponse, headers);
-    return proxyResponse;
+    const response = isApi ? NextResponse.next() : applyCsp(req);
+    applyHeaders(response, headers);
+    return response;
   }
 
-  const proxyResponse = await proxy(req);
-  applyHeaders(proxyResponse, cors);
-  return proxyResponse;
+  const response = isApi ? NextResponse.next() : applyCsp(req);
+  applyHeaders(response, cors);
+  return response;
 }
 
 export const config = {
   matcher: [
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!_next/static|_next/image|favicon.ico).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

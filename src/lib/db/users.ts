@@ -1,4 +1,5 @@
-import { query, queryOnClient, fetchOne, fetchAll, transaction } from "./core";
+import { queryOnClient, transaction } from "./core";
+import { bumpDbVersion } from "@/lib/cache";
 
 export interface ShipRow {
   id: number;
@@ -37,9 +38,6 @@ export function isCollectionOwner(row: Pick<CollectionRow, "discord_id" | "owner
   if (row.discord_id) return row.discord_id === id;
   return row.owner === username;
 }
-
-import jwt from "jsonwebtoken";
-import { type TokenPayload } from "@/lib/auth";
 
 /**
  * Runs on every OAuth login to migrate records left under an old Discord username.
@@ -91,5 +89,6 @@ export async function migrateUsernameOnLogin(
       "UPDATE favoritedb SET name = $1 WHERE discord_id = $2 AND name <> $1",
       [newUsername, userId],
     );
+    bumpDbVersion();
   });
 }

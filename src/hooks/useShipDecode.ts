@@ -35,7 +35,6 @@ export function useShipDecode(imageUrl: string) {
     return cache.get(imageUrl) ?? null;
   });
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const urlRef = useRef(imageUrl);
 
   useEffect(() => {
@@ -69,7 +68,6 @@ export function useShipDecode(imageUrl: string) {
       });
     }
 
-    setLoading(true);
     promise
       .then((result) => {
         if (active) setDecoded(result);
@@ -77,15 +75,14 @@ export function useShipDecode(imageUrl: string) {
       .catch((err) => {
         console.error("Decode error:", err);
         if (active) setError("Failed to decode ship data from image.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
       });
 
     return () => {
       active = false;
     };
   }, [imageUrl, decoded, error]);
+
+  const loading = !decoded && !error;
 
   return { decoded, loading, error };
 }

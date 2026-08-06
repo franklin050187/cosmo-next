@@ -37,7 +37,6 @@ class InMemoryRateLimiter {
 
   async limit(key: string): Promise<RateLimitResult> {
     const now = Date.now();
-    const windowStart = now - this.config.windowMs;
     const keyWithPrefix = `${this.config.keyPrefix ?? "rl"}:${key}`;
 
     let entry = this.store.get(keyWithPrefix);
