@@ -65,7 +65,7 @@ export default function Header() {
 
   useEffect(() => {
     if (!authError) return;
-    const timer = setTimeout(() => setDismissed(true), 5000);
+    const timer = setTimeout(() => setDismissed(true), 15000);
     return () => clearTimeout(timer);
   }, [authError]);
 

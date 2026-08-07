@@ -764,6 +764,7 @@ async function phase4(
       got === QA_ANON_ID,
       `QA anon_id drifted (got ${got}, expected ${QA_ANON_ID}). Update QA_ANON_ID in scripts/qa-lib.ts and ANALYTICS_EXCLUDE_ANON_IDS in .env.`
     );
+    await q("DELETE FROM analytics WHERE url = '/qa-anon-id-check'");
   });
 }
 
