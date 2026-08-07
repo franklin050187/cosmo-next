@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -65,12 +65,45 @@ export function runCli(args: string[]): string {
   return res.stdout.replace(/\0/g, "");
 }
 
+// Async (non-blocking) variant for tests that can run concurrently.
+export function runCliAsync(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("playwright-cli", args, {
+      encoding: "utf8",
+      maxBuffer: 512 * 1024 * 1024,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (d) => (stdout += d));
+    child.stderr?.on("data", (d) => (stderr += d));
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(
+          new Error(`playwright-cli ${args.join(" ")} failed (${code}): ${(stderr || stdout).slice(0, 800)}`)
+        );
+      } else {
+        resolve(stdout.replace(/\0/g, ""));
+      }
+    });
+  });
+}
+
 export function openSession(session: string, url: string) {
   const args = ["-s=" + session, "open", url];
   if (session === SESSION_QA) {
     args.push("--persistent", "--profile=" + QA_PROFILE);
   }
   return runCli(args);
+}
+
+// Async variant for concurrent tests.
+export async function openSessionAsync(session: string, url: string): Promise<string> {
+  const args = ["-s=" + session, "open", url];
+  if (session === SESSION_QA) {
+    args.push("--persistent", "--profile=" + QA_PROFILE);
+  }
+  return runCliAsync(args);
 }
 
 function extractResult(out: string): string {
@@ -85,6 +118,18 @@ function extractResult(out: string): string {
 
 export function cliEval(session: string, expr: string): unknown {
   const out = runCli(["-s=" + session, "eval", expr]);
+  const raw = extractResult(out);
+  if (raw === "undefined") return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(`eval result not JSON (${raw.slice(0, 300)})`);
+  }
+}
+
+// Async variant for concurrent tests.
+export async function cliEvalAsync(session: string, expr: string): Promise<unknown> {
+  const out = await runCliAsync(["-s=" + session, "eval", expr]);
   const raw = extractResult(out);
   if (raw === "undefined") return undefined;
   try {
@@ -109,12 +154,56 @@ export async function httpFetch(
   return (await cliEval(session, expr)) as { status: number; body: unknown };
 }
 
+// Async variant for concurrent tests.
+export async function httpFetchAsync(
+  session: string,
+  url: string,
+  opts?: { method?: string; body?: string; headers?: Record<string, string> }
+): Promise<{ status: number; body: unknown }> {
+  const { method = "GET", body, headers = {} } = opts ?? {};
+  const expr = `fetch(${JSON.stringify(url)}, ${JSON.stringify({
+    method,
+    body,
+    headers,
+    credentials: "include",
+  })}).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }))`;
+  return (await cliEvalAsync(session, expr)) as { status: number; body: unknown };
+}
+
 export function pageUrl(session: string): string {
   return String(cliEval(session, "window.location.href"));
 }
 
 export function pageText(session: string): string {
   return String(cliEval(session, "document.body.innerText"));
+}
+
+// Async variants for concurrent tests.
+export async function pageTextAsync(session: string): Promise<string> {
+  return String(await cliEvalAsync(session, "document.body.innerText"));
+}
+
+export async function pageUrlAsync(session: string): Promise<string> {
+  return String(await cliEvalAsync(session, "window.location.href"));
+}
+
+// Run a list of async test fns with bounded concurrency. Each item receives a
+// unique throwaway session name so independent ephemeral browser contexts don't
+// race on a shared session.
+export async function parallelChecks(
+  items: { id: string; name: string; fn: (session: string) => Promise<void> }[],
+  concurrency = 3
+): Promise<void> {
+  const queue = [...items].map((it) => ({ ...it, session: `anon-par-${Math.random().toString(36).slice(2, 10)}` }));
+  const workers: Promise<void>[] = [];
+  const run = async () => {
+    while (queue.length) {
+      const item = queue.shift()!;
+      await check(item.id, item.name, () => item.fn(item.session));
+    }
+  };
+  for (let i = 0; i < Math.min(concurrency, items.length); i++) workers.push(run());
+  await Promise.all(workers);
 }
 
 export async function waitFor(
@@ -135,6 +224,27 @@ export async function waitFor(
     await sleep(interval);
   }
   throw new Error(`waitFor timeout: ${expr}${lastErr ? " (last: " + String(lastErr).slice(0, 200) + ")" : ""}`);
+}
+
+// Non-blocking (spawn-based) variant for concurrent tests.
+export async function waitForAsync(
+  session: string,
+  expr: string,
+  timeoutMs = 20000,
+  interval = 600
+): Promise<unknown> {
+  const t0 = Date.now();
+  let lastErr: unknown;
+  while (Date.now() - t0 < timeoutMs) {
+    try {
+      const v = await cliEvalAsync(session, expr);
+      if (v) return v;
+    } catch (e) {
+      lastErr = e;
+    }
+    await sleep(interval);
+  }
+  throw new Error(`waitForAsync timeout: ${expr}${lastErr ? " (last: " + String(lastErr).slice(0, 200) + ")" : ""}`);
 }
 
 export function prepTurnstile(session: string) {

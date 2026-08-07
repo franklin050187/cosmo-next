@@ -37,20 +37,47 @@ export function useAuth(): UseAuthReturn {
 
   useEffect(() => {
     let active = true;
-    fetchSession().then((u) => {
-      if (active) {
-        setUser(u);
-        setHydrated(true);
-      }
-    });
+
+    function refetch() {
+      sessionPromise = null;
+      fetchSession().then((u) => {
+        if (active) {
+          setUser(u);
+          setHydrated(true);
+        }
+      });
+    }
+
+    refetch();
+
+    // Signal a fresh login to other tabs; this tab already fetched above.
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("just_logged_in") === "1") {
+      try {
+        localStorage.setItem("cosmoshipro:auth:login", Date.now().toString());
+      } catch { /* storage disabled */ }
+      const url = new URL(window.location.href);
+      url.searchParams.delete("just_logged_in");
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== "cosmoshipro:auth:login" && e.key !== "cosmoshipro:auth:logout") return;
+      refetch();
+    };
+    window.addEventListener("storage", onStorage);
+
     return () => {
       active = false;
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
   const logout = useCallback(async () => {
     setUser(null);
     sessionPromise = null;
+    try {
+      localStorage.setItem("cosmoshipro:auth:logout", Date.now().toString());
+    } catch { /* storage disabled */ }
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {

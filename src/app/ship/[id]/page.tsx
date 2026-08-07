@@ -82,10 +82,35 @@ export default function ShipDetailPage() {
           const res = await fetch(`/api/ship/${params.id}`, { signal: controller.signal });
           if (!res.ok) throw new Error("Ship not found");
           const json = await res.json();
-          if (!active) return;
-          const data = json.data ?? json;
-          setShip(data);
-          document.title = `${data.ship_name?.replace(".ship.png", "")} - CosmoShip`;
+           if (!active) return;
+           const data = json.data ?? json;
+           setShip(data);
+           const name = data.ship_name?.replace(".ship.png", "") ?? "Ship";
+           document.title = `${name} - CosmoShip`;
+           const pageUrl = `${window.location.origin}${window.location.pathname}`;
+           const ogImage = data.data;
+           const setOg = (name: string, content: string) => {
+             let el = document.querySelector(`meta[property="${name}"]`);
+             if (!el) {
+               el = document.createElement("meta");
+               el.setAttribute("property", name);
+               document.head.appendChild(el);
+             }
+             el.setAttribute("content", content);
+           };
+           setOg("og:title", `${name} - CosmoShip`);
+           setOg("og:description", data.description || document.querySelector('meta[name="description"]')?.getAttribute("content") || "");
+           if (ogImage) setOg("og:image", ogImage);
+           setOg("og:url", pageUrl);
+           setOg("twitter:title", `${name} - CosmoShip`);
+           if (ogImage) setOg("twitter:image", ogImage);
+           let canon = document.querySelector('link[rel="canonical"]');
+           if (!canon) {
+             canon = document.createElement("link");
+             canon.setAttribute("rel", "canonical");
+             document.head.appendChild(canon);
+           }
+           (canon as HTMLLinkElement).href = pageUrl;
           if (user?.username === data.submitted_by) {
             setIsOwner(true);
           }
@@ -164,7 +189,9 @@ export default function ShipDetailPage() {
   };
 
   if (loading) return <p className="text-center text-blue-200">Loading...</p>;
-  if (error || !ship) return <p className="text-center text-red-400">{error}</p>;
+  if (error) return <p className="text-center text-red-400">{error}</p>;
+  if (!ship) return <p className="text-center text-red-400">Ship not found.</p>;
+  if (!ship.data) return <p className="text-center text-red-400">Ship data is missing.</p>;
 
   return (
     <div>
