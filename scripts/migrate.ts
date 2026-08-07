@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { Client } from "pg";
 
-const MIGRATIONS_DIR = resolve(import.meta.dirname, "../migrations");
+const MIGRATIONS_DIR = resolve(import.meta.dirname, "migrations");
 
 async function main() {
   const client = new Client({

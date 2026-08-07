@@ -40,11 +40,6 @@ broken-links.log
 .playwright/
 .qa/
 
-# docs
-CODE_REVIEW_FINDINGS.md
-CODE_REVIEW_FINDINGS_NEXT.md
-AGENTS.md
-
 # dev/QA scripts (keep in repo, not in deploy package)
 # large regenerable Steam extraction data stays local
 /scripts/ingame

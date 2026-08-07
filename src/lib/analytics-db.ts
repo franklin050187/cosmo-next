@@ -7,7 +7,7 @@ let schemaPromise: Promise<void> | null = null;
  * tell anonymous visitors apart (hash of IP + user-agent). Runs once per
  * process; safe to call on every analytics path.
  *
- * The canonical schema change lives in `migrations/001-analytics-anon-id.sql`
+ * The canonical schema change lives in `scripts/migrations/001-analytics-anon-id.sql`
  * (`npm run migrate`). This is a self-healing fallback so read/write paths keep
  * working on instances where migrations haven't been applied yet.
  */

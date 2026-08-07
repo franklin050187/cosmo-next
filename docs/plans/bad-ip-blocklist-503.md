@@ -72,7 +72,7 @@
    - P2-G15: `/api/internal/update-blocklist` auth (no token 401; wrong 401; good 200 + counts).
 5. `QA_TEST_PLAN.md`
    - Document P2-G13/G14/G15 + 503 rationale.
-6. `CODE_REVIEW_FINDINGS.md`
+6. `docs/CODE_REVIEW_FINDINGS.md`
    - Note new finding (or new entry) for this feature once implemented.
 7. `.vercelignore`
    - Ensure `vercel.json` is NOT ignored (must deploy for cron). Verify excludes `node_modules` only.
