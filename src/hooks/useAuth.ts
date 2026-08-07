@@ -21,8 +21,8 @@ let sessionPromise: Promise<User | null> | null = null;
 function fetchSession(): Promise<User | null> {
   if (!sessionPromise) {
     sessionPromise = fetch("/api/auth/session")
-      .then((r) => (r.ok ? r.json() : { user: null }))
-      .then((d: { user: User | null }) => d.user ?? null)
+      .then((r) => (r.ok ? r.json() : { data: null }))
+      .then((d: { data: { user: User } | null }) => d.data?.user ?? null)
       .catch(() => null)
       .finally(() => {
         sessionPromise = null;

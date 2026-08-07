@@ -32,13 +32,13 @@ export default function CollectionPicker({ shipId, children, className }: Props)
   useEffect(() => {
     if (!open || !isLoggedIn) return;
     const ac = new AbortController();
-    fetch(`/api/collections/mine?shipId=${shipId}`, { signal: ac.signal })
+     fetch(`/api/collections/mine?shipId=${shipId}`, { signal: ac.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((data) => {
-        setCollections(Array.isArray(data) ? data : []);
+      .then((json) => {
+        setCollections(Array.isArray(json.data) ? json.data : []);
       })
       .catch((err: unknown) => {
         if ((err as Error)?.name === "AbortError") return;
@@ -100,14 +100,15 @@ export default function CollectionPicker({ shipId, children, className }: Props)
         const res = await fetch(`/api/collections/${col.id}/ships/${shipId}`, {
           method: "DELETE",
         });
-        const data = await res.json();
-        if (data.success) {
+        const json = await res.json();
+        const data = json.data ?? {};
+        if (data.success || data.warning) {
           setCollections((prev) =>
             prev.map((c) => (c.id === col.id ? { ...c, has_ship: false } : c)),
           );
           showMsg(`Removed from "${col.title}"`);
         } else {
-          showMsg(data.error ?? data.warning ?? "Failed to remove");
+          showMsg(json.error ?? data.error ?? "Failed to remove");
         }
       } else {
         const res = await fetch(`/api/collections/${col.id}/ships`, {
@@ -117,14 +118,15 @@ export default function CollectionPicker({ shipId, children, className }: Props)
           },
           body: JSON.stringify({ shipId }),
         });
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data ?? {};
         if (data.success || data.warning) {
           setCollections((prev) =>
             prev.map((c) => (c.id === col.id ? { ...c, has_ship: true } : c)),
           );
           showMsg(data.warning ?? `Added to "${col.title}"`);
         } else {
-          showMsg(data.error ?? "Failed to add");
+          showMsg(json.error ?? data.error ?? "Failed to add");
         }
       }
     } catch {

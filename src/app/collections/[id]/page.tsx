@@ -32,8 +32,9 @@ export default function CollectionDetailPage() {
       try {
         const res = await fetch(`/api/collections/${params.id}`, { signal: controller.signal });
         if (!res.ok) throw new Error("Not found");
-        const data = await res.json();
+        const json = await res.json();
         if (!active) return;
+        const data = json.data ?? json;
         setCollection(data);
         document.title = `${data.title} - CosmoShip`;
         trackEvent("collection_view");

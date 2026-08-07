@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { logEvent } from "@/lib/analytics-db";
 import { getUserFromRequest } from "@/lib/auth";
+import { ok, badRequest, error } from "@/lib/api";
 
 /**
  * Stable pseudo-identity for anonymous visitors: hash(IP + user-agent + salt).
@@ -34,26 +35,26 @@ export async function POST(req: NextRequest) {
     if (ct.includes("application/json")) {
       const cl = req.headers.get("content-length");
       if (cl && parseInt(cl, 10) > 1_048_576) {
-        return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+        return badRequest("Payload too large", 413);
       }
       body = await req.json();
     } else {
-      return NextResponse.json({ error: "unsupported content-type" }, { status: 400 });
+      return badRequest("unsupported content-type");
     }
 
     const event_type = String(body.event_type ?? "").trim().slice(0, MAX_EVENT_TYPE_LEN);
     if (!event_type) {
-      return NextResponse.json({ error: "event_type is required" }, { status: 400 });
+      return badRequest("event_type is required");
     }
 
     const rawMetadata = body.metadata;
     let metadata: Record<string, unknown> | undefined;
     if (rawMetadata != null) {
       if (typeof rawMetadata !== "object" || Array.isArray(rawMetadata)) {
-        return NextResponse.json({ error: "metadata must be an object" }, { status: 400 });
+        return badRequest("metadata must be an object");
       }
       if (Buffer.byteLength(JSON.stringify(rawMetadata), "utf8") > MAX_METADATA_BYTES) {
-        return NextResponse.json({ error: "metadata too large" }, { status: 400 });
+        return badRequest("metadata too large");
       }
       metadata = rawMetadata as Record<string, unknown>;
     }
@@ -77,9 +78,9 @@ export async function POST(req: NextRequest) {
       anon_id: user ? undefined : anonIdFor(req),
     });
 
-    return NextResponse.json({ ok: true });
+    return ok(true);
   } catch (err) {
     console.error("analytics/log error:", err);
-    return NextResponse.json({ error: "internal" }, { status: 500 });
+    return error("internal");
   }
 }

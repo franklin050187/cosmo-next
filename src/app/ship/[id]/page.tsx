@@ -79,28 +79,29 @@ export default function ShipDetailPage() {
 
      const fetchShip = async () => {
        try {
-         const res = await fetch(`/api/ship/${params.id}`, { signal: controller.signal });
-         if (!res.ok) throw new Error("Ship not found");
-         const data = await res.json();
-         if (!active) return;
-         setShip(data);
-         document.title = `${data.ship_name?.replace(".ship.png", "")} - CosmoShip`;
-         if (user?.username === data.submitted_by) {
-           setIsOwner(true);
-         }
-       } catch {
-         if (active) setError("Ship not found");
-       } finally {
-         if (active) setLoading(false);
-       }
-     };
+          const res = await fetch(`/api/ship/${params.id}`, { signal: controller.signal });
+          if (!res.ok) throw new Error("Ship not found");
+          const json = await res.json();
+          if (!active) return;
+          const data = json.data ?? json;
+          setShip(data);
+          document.title = `${data.ship_name?.replace(".ship.png", "")} - CosmoShip`;
+          if (user?.username === data.submitted_by) {
+            setIsOwner(true);
+          }
+        } catch {
+          if (active) setError("Ship not found");
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
 
-     const fetchCollections = async () => {
-       try {
-         const res = await fetch(`/api/collections?shipId=${params.id}`, { signal: controller.signal });
-         if (!res.ok) throw new Error("Failed to fetch collections");
-         const data = await res.json();
-         if (active) setCollections(data.data ?? []);
+      const fetchCollections = async () => {
+        try {
+          const res = await fetch(`/api/collections?shipId=${params.id}`, { signal: controller.signal });
+          if (!res.ok) throw new Error("Failed to fetch collections");
+          const json = await res.json();
+          if (active) setCollections(json.data ?? []);
        } catch {
          /* silent */
        }

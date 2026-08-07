@@ -49,12 +49,12 @@ Defense-in-depth for the binary decode path and unbounded client memory.
 
 | # | Item | Source | Status |
 |---|------|--------|--------|
-| 4.1 | **Uniform response envelope** `{ ok, data? | error? }` across all routes (some still return `{ data: … }` bare / inconsistent shapes). | R4-L18 | ⬜ |
-| 4.2 | **Collections API shapes** — `GET /api/collections` returns `{data}` for `?shipId=X` but `{data,page,max_page,total_count}` for the paginated path. | M2 | ⬜ |
-| 4.3 | **`price.ts` module-level side effect** (eager `partCostCache` fill on import) + `MISSILE_MAPPING` duplicate of `missileTagMap`. | M3 | ⬜ |
-| 4.4 | **Delete `src/lib/db.old.ts`** (693-line pre-modularization file, zero references). | PROJECT | ⬜ |
-| 4.5 | **Slim `getImageData` projection** for ownership/check-duplicate paths (avoid pulling full `data` blob). | PP | ⬜ |
-| 4.6 | *(Optional)* **Shared binary helpers** between `cosmoShip.js` and `server-decode.ts` (currently two overlapping decoders). | R2 pattern | 🔸 |
+| 4.1 | **Uniform response envelope** `{ ok, data? | error? }` across all routes (some still return `{ data: … }` bare / inconsistent shapes). | R4-L18 | ✅ |
+| 4.2 | **Collections API shapes** — `GET /api/collections` returns `{data}` for `?shipId=X` but `{data,page,max_page,total_count}` for the paginated path. | M2 | ✅ |
+| 4.3 | **`price.ts` module-level side effect** (eager `partCostCache` fill on import) + `MISSILE_MAPPING` duplicate of `missileTagMap`. | M3 | ✅ |
+| 4.4 | **Delete `src/lib/db.old.ts`** (693-line pre-modularization file, zero references). | PROJECT | ✅ |
+| 4.5 | **Slim `getImageData` projection** for ownership/check-duplicate paths (avoid pulling full `data` blob). | PP | ✅ |
+| 4.6 | *(Optional)* **Shared binary helpers** between `cosmoShip.js` and `server-decode.ts` (currently two overlapping decoders). | R2 pattern | deferred
 
 ## Phase 5 — SEO, metadata & polish
 

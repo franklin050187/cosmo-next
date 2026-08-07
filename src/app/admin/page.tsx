@@ -87,7 +87,7 @@ export default function AdminPage() {
         if (!res.ok) throw new Error("Failed to fetch");
         const json = await res.json();
         if (!cancelled) {
-          setData(json);
+          setData(json.data);
           setError(null);
         }
       } catch (e) {

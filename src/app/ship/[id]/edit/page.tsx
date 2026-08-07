@@ -54,8 +54,10 @@ export default function EditShipPage() {
       try {
         const res = await fetch(`/api/ship/${params.id}`, { signal: controller.signal });
         if (!res.ok) throw new Error("Ship not found");
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data ?? json;
 
+        if (!active) return;
         if (!user?.username || data.submitted_by !== user.username) {
           setNotOwner(true);
           return;

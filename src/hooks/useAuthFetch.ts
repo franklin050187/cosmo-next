@@ -16,8 +16,16 @@ export function useAuthFetch<T>(url: string) {
     controllerRef.current = controller;
     try {
       const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          if (errBody && typeof errBody.error === "string") errMsg = errBody.error;
+        } catch {}
+        throw new Error(errMsg);
+      }
+      const json = await res.json();
+      setData(json.data ?? ({} as T));
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setError((err as Error).message);
@@ -33,11 +41,20 @@ export function useAuthFetch<T>(url: string) {
     controllerRef.current = controller;
     fetch(url, { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          let errMsg = `HTTP ${res.status}`;
+          return res
+            .json()
+            .catch(() => ({}))
+            .then((errBody) => {
+              if (errBody && typeof errBody.error === "string") errMsg = errBody.error;
+              throw new Error(errMsg);
+            });
+        }
         return res.json();
       })
-      .then((json: T) => {
-        if (active) setData(json);
+      .then((json: { data: T }) => {
+        if (active) setData(json.data ?? ({} as T));
       })
       .catch((err: unknown) => {
         if ((err as Error).name === "AbortError") return;

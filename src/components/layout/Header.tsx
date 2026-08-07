@@ -47,7 +47,7 @@ export default function Header() {
     const controller = new AbortController();
     fetch("/api/auth/is-admin", { signal: controller.signal })
       .then((r) => r.json())
-      .then((d: { isAdmin: boolean }) => setIsAdmin(d.isAdmin))
+      .then((d: { data: { isAdmin: boolean } }) => setIsAdmin(d.data?.isAdmin ?? false))
       .catch(() => setIsAdmin(false));
     return () => controller.abort();
   }, [user]);

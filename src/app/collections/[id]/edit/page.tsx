@@ -40,8 +40,9 @@ function EditCollectionContent() {
 
     fetch(`/api/collections/${params.id}`, { signal: controller.signal })
       .then((r) => r.json())
-      .then((data) => {
+      .then((json) => {
         if (!active) return;
+        const data = json.data ?? json;
         const isOwner = user?.username === data.owner;
 
         if (!isOwner) {
@@ -72,16 +73,16 @@ function EditCollectionContent() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/collections/${collection.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ title: title.trim(), description: description.trim(), "cf-turnstile-response": turnstileToken }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setError(data.error);
+       const res = await fetch(`/api/collections/${collection.id}`, {
+         method: "PUT",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({ title: title.trim(), description: description.trim(), "cf-turnstile-response": turnstileToken }),
+       });
+      const json = await res.json();
+      if (json.error) {
+        setError(json.error);
         turnstileRef.current?.reset();
       } else {
         trackEvent("collection_edit");
@@ -164,8 +165,8 @@ function AddShipsSection({ collectionId, existingShipIds }: { collectionId: numb
     setSearching(true);
     try {
       const res = await fetch(`/api/ship/search?q=${encodeURIComponent(query.trim())}&order=new`);
-      const data = await res.json();
-      setResults(data.data ?? []);
+      const json = await res.json();
+      setResults(json.data?.data ?? []);
     } catch {
       setResults([]);
     } finally {

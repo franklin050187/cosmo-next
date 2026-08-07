@@ -34,10 +34,11 @@ export default function HomeContent({ initialShips, initialTotalCount, initialMa
 
       const res = await fetch(`/api/ship/search?${params.toString()}`, { signal });
       if (res.ok) {
-        const data = await res.json();
-        setShips(data.data ?? []);
-        setMaxPage(data.max_page ?? 1);
-        setTotalResults(data.total_count ?? data.data?.length ?? 0);
+        const json = await res.json();
+        const payload = json.data ?? {};
+        setShips(payload.data ?? []);
+        setMaxPage(payload.max_page ?? 1);
+        setTotalResults(payload.total_count ?? payload.data?.length ?? 0);
       }
     } catch (err) {
       if ((err as Error)?.name === "AbortError") return;

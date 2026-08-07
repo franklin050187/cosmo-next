@@ -21,7 +21,7 @@ export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps)
     const controller = new AbortController();
     fetch("/api/ship/tags", { signal: controller.signal })
       .then(r => r.json())
-      .then((d: TagOption[]) => setOptions(d))
+      .then((d: { data: TagOption[] }) => setOptions(d.data ?? []))
       .catch((e) => { if ((e as Error).name !== "AbortError") console.error("Failed to fetch tags:", e); });
     return () => controller.abort();
   }, []);

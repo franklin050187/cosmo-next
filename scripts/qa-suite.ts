@@ -229,8 +229,8 @@ async function phase1(scratch: { shipId: number; ufsUrl: string }) {
       httpFetch(S, `/api/analytics/dashboard?exclude=${encodeURIComponent(PONEY_USER)}`),
     ]);
     assert(allRes.status === 200 && exclRes.status === 200, "dashboard api status");
-    const all = Number((allRes.body as { totals?: { total_events?: number } }).totals?.total_events ?? -1);
-    const excl = Number((exclRes.body as { totals?: { total_events?: number } }).totals?.total_events ?? -1);
+    const all = Number((allRes.body as { data?: { totals?: { total_events?: number } } }).data?.totals?.total_events ?? -1);
+    const excl = Number((exclRes.body as { data?: { totals?: { total_events?: number } } }).data?.totals?.total_events ?? -1);
     assert(all >= 0 && excl >= 0, "missing totals.total_events in response");
     assert(excl <= all, `exclude filter did not drop events (all=${all}, excl=${excl})`);
   });
