@@ -26,10 +26,11 @@ export default function CollectionDetailPage() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
 
     const fetchCollection = async () => {
       try {
-        const res = await fetch(`/api/collections/${params.id}`);
+        const res = await fetch(`/api/collections/${params.id}`, { signal: controller.signal });
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
         if (!active) return;
@@ -48,7 +49,7 @@ export default function CollectionDetailPage() {
     };
 
     fetchCollection();
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [params.id, user?.username]);
 
   const handleRemove = async (shipId: number) => {

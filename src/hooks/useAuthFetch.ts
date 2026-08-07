@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./useAuth";
 
 export function useAuthFetch<T>(url: string) {
@@ -8,13 +8,18 @@ export function useAuthFetch<T>(url: string) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async () => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData(await res.json());
     } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError((err as Error).message);
     } finally {
       setLoading(false);
@@ -24,7 +29,9 @@ export function useAuthFetch<T>(url: string) {
   useEffect(() => {
     if (!isLoggedIn) return;
     let active = true;
-    fetch(url)
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    fetch(url, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -33,6 +40,7 @@ export function useAuthFetch<T>(url: string) {
         if (active) setData(json);
       })
       .catch((err: unknown) => {
+        if ((err as Error).name === "AbortError") return;
         if (active) setError((err as Error).message);
       })
       .finally(() => {
@@ -40,6 +48,7 @@ export function useAuthFetch<T>(url: string) {
       });
     return () => {
       active = false;
+      controller.abort();
     };
   }, [url, isLoggedIn]);
 

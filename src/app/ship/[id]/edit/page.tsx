@@ -42,6 +42,8 @@ export default function EditShipPage() {
 
   useEffect(() => {
     if (!hydrated) return;
+    let active = true;
+    const controller = new AbortController();
 
     const fetchShip = async () => {
       if (!isLoggedIn) {
@@ -50,7 +52,7 @@ export default function EditShipPage() {
       }
 
       try {
-        const res = await fetch(`/api/ship/${params.id}`);
+        const res = await fetch(`/api/ship/${params.id}`, { signal: controller.signal });
         if (!res.ok) throw new Error("Ship not found");
         const data = await res.json();
 
@@ -59,6 +61,7 @@ export default function EditShipPage() {
           return;
         }
 
+        if (!active) return;
         setShip(data);
         setShipName(data.ship_name);
         setDescription(data.description);
@@ -67,13 +70,14 @@ export default function EditShipPage() {
         setUserTags(ut);
         setAutoTags(at);
       } catch (err) {
-        console.error("Failed to fetch ship:", err);
+        if (active) console.error("Failed to fetch ship:", err);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchShip();
+    return () => { active = false; controller.abort(); };
   }, [params.id, router, isLoggedIn, user?.username, hydrated]);
 
   const handleSave = async () => {

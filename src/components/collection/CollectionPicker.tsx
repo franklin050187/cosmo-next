@@ -67,6 +67,15 @@ export default function CollectionPicker({ shipId, children, className }: Props)
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      if (msgTimer.current !== undefined) {
+        clearTimeout(msgTimer.current);
+        msgTimer.current = undefined;
+      }
+    };
+  }, []);
+
   const handleToggle = () => {
     if (open) {
       setOpen(false);

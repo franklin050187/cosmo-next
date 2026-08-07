@@ -29,6 +29,7 @@ function EditCollectionContent() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
 
     if (!hydrated) return;
 
@@ -37,7 +38,7 @@ function EditCollectionContent() {
       return;
     }
 
-    fetch(`/api/collections/${params.id}`)
+    fetch(`/api/collections/${params.id}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (!active) return;
@@ -55,7 +56,7 @@ function EditCollectionContent() {
       .catch(() => { if (active) router.push("/"); })
       .finally(() => { if (active) setLoading(false); });
 
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [params.id, router, isLoggedIn, user?.username, hydrated]);
 
   const handleSave = async () => {

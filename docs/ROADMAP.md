@@ -35,15 +35,15 @@ Defense-in-depth for the binary decode path and unbounded client memory.
 
 | # | Item | Source | Status |
 |---|------|--------|--------|
-| 3.1 | **Decompression size cap** — `cosmoShip.js` `DecompressionStream` / `server-decode.ts` `zlib.gunzipSync` have no max output size (zip-bomb vector). | M9 | ⬜ |
-| 3.2 | **Allocation caps** — `readString`/`readVarint` length prefixes allocate without limit in `cosmoShip.js`. | M10 | ⬜ |
-| 3.3 | **Log `SKIP` drops** — `processBinaryValue` silently drops unrecognized keys; log at debug level for format evolution. | M11 | ⬜ |
-| 3.4 | **Circular-reference guard** in `normalize-ship.ts` recursive traversal (currently stack-overflows on cycles). | M8 | ⬜ |
-| 3.5 | **Cache eviction policy** for module-level caches (`useShipDecode`, `ShipStats`, `ShipReconstruction`) — currently unbounded. | M5 | ⬜ |
-| 3.6 | **AbortController** on remaining `useEffect` fetch sites (12+ locations; only `HomeContent` has it). | M24 | ⬜ |
-| 3.7 | **Timer cleanup** in `CollectionPicker` `setTimeout`. | M20 | ⬜ |
-| 3.8 | **Migrate `RichTextEditor` off deprecated `document.execCommand()`** (now also breaks with `unsafe-eval`/CSP cleanups). | M26 | ⬜ |
-| 3.9 | **TurnstileWidget**: visual feedback when Cloudflare script fails to load [M6]; remove dead `readyState` script-element check [M21]. | M6, M21 | ⬜ |
+| 3.1 | **Decompression size cap** — `cosmoShip.js` `DecompressionStream` / `server-decode.ts` `zlib.gunzipSync` have no max output size (zip-bomb vector). | M9 | ✅ |
+| 3.2 | **Allocation caps** — `readString`/`readVarint` length prefixes allocate without limit in `cosmoShip.js`. | M10 | ✅ |
+| 3.3 | **Log `SKIP` drops** — `processBinaryValue` silently drops unrecognized keys; log at debug level for format evolution. | M11 | ✅ |
+| 3.4 | **Circular-reference guard** in `normalize-ship.ts` recursive traversal (currently stack-overflows on cycles). | M8 | ✅ |
+| 3.5 | **Cache eviction policy** for module-level caches (`useShipDecode`, `ShipStats`, `ShipReconstruction`) — currently unbounded. | M5 | ✅ |
+| 3.6 | **AbortController** on remaining `useEffect` fetch sites (12+ locations; only `HomeContent` has it). | M24 | ✅ |
+| 3.7 | **Timer cleanup** in `CollectionPicker` `setTimeout`. | M20 | ✅ |
+| 3.8 | **Migrate `RichTextEditor` off deprecated `document.execCommand()`** (now also breaks with `unsafe-eval`/CSP cleanups). | M26 | ✅ |
+| 3.9 | **TurnstileWidget**: visual feedback when Cloudflare script fails to load [M6]; remove dead `readyState` script-element check [M21]. | M6, M21 | ✅ |
 
 ## Phase 4 — Consistency & refactor
 

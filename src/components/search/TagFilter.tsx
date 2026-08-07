@@ -18,7 +18,12 @@ export default function TagFilter({ tagsOn, tagsOff, onChange }: TagFilterProps)
   const { wrapRef, showDD, setShowDD, ddPos, highlight, setHighlight } = useDropdown();
 
   useEffect(() => {
-    fetch("/api/ship/tags").then(r => r.json()).then((d: TagOption[]) => setOptions(d)).catch((e) => console.error("Failed to fetch tags:", e));
+    const controller = new AbortController();
+    fetch("/api/ship/tags", { signal: controller.signal })
+      .then(r => r.json())
+      .then((d: TagOption[]) => setOptions(d))
+      .catch((e) => { if ((e as Error).name !== "AbortError") console.error("Failed to fetch tags:", e); });
+    return () => controller.abort();
   }, []);
 
   const selected = new Set([...tagsOn, ...tagsOff]);

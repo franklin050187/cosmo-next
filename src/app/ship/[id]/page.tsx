@@ -75,10 +75,11 @@ export default function ShipDetailPage() {
 
    useEffect(() => {
      let active = true;
+     const controller = new AbortController();
 
      const fetchShip = async () => {
        try {
-         const res = await fetch(`/api/ship/${params.id}`);
+         const res = await fetch(`/api/ship/${params.id}`, { signal: controller.signal });
          if (!res.ok) throw new Error("Ship not found");
          const data = await res.json();
          if (!active) return;
@@ -96,7 +97,7 @@ export default function ShipDetailPage() {
 
      const fetchCollections = async () => {
        try {
-         const res = await fetch(`/api/collections?shipId=${params.id}`);
+         const res = await fetch(`/api/collections?shipId=${params.id}`, { signal: controller.signal });
          if (!res.ok) throw new Error("Failed to fetch collections");
          const data = await res.json();
          if (active) setCollections(data.data ?? []);
@@ -107,7 +108,7 @@ export default function ShipDetailPage() {
 
      fetchShip();
      fetchCollections();
-     return () => { active = false; };
+     return () => { active = false; controller.abort(); };
    }, [params.id, user?.username]);
 
     const handleFavorite = async () => {

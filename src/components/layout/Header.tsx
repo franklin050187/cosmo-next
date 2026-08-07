@@ -44,10 +44,12 @@ export default function Header() {
 
   useEffect(() => {
     if (!user) return;
-    fetch("/api/auth/is-admin")
+    const controller = new AbortController();
+    fetch("/api/auth/is-admin", { signal: controller.signal })
       .then((r) => r.json())
       .then((d: { isAdmin: boolean }) => setIsAdmin(d.isAdmin))
       .catch(() => setIsAdmin(false));
+    return () => controller.abort();
   }, [user]);
 
   useEffect(() => {

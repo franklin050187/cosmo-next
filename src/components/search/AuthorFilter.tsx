@@ -23,7 +23,12 @@ export default function AuthorFilter({ value, onChange }: AuthorFilterProps) {
   }
 
   useEffect(() => {
-    fetch("/api/ship/authors").then(r => r.json()).then((d: AuthorOption[]) => setOptions(d)).catch((e) => console.error("Failed to fetch authors:", e));
+    const controller = new AbortController();
+    fetch("/api/ship/authors", { signal: controller.signal })
+      .then(r => r.json())
+      .then((d: AuthorOption[]) => setOptions(d))
+      .catch((e) => { if ((e as Error).name !== "AbortError") console.error("Failed to fetch authors:", e); });
+    return () => controller.abort();
   }, []);
 
   const filtered = input
